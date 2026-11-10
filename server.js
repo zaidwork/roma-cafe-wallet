@@ -36,6 +36,9 @@ app.get('/verify', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/verify.html'));
 });
 
+// Favicon handler to prevent 404 errors and hanging browser tabs
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+
 // Core Configuration & Credentials
 const ISSUER_ID = process.env.GOOGLE_ISSUER_ID || "3388000000023239265";
 const DRINKS_CLASS_ID = process.env.GOOGLE_CLASS_ID || `${ISSUER_ID}.ROMA`;
@@ -69,13 +72,16 @@ function requireAdminAuth(req, res, next) {
   });
 }
 
-// Initialize Supabase Client
-const SUPABASE_URL = process.env.SUPABASE_URL || "https://iulapfbjwckfcdhghszf.supabase.co";
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
-if (!SUPABASE_ANON_KEY) {
-  console.warn("⚠️ تنبيه: يرجى ضبط SUPABASE_ANON_KEY في متغيرات البيئة (.env أو Render Environment)");
-}
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY || 'placeholder');
+// Initialize Supabase Client with Built-in Fallback
+const DEFAULT_SUPABASE_URL = "https://iulapfbjwckfcdhghszf.supabase.co";
+const DEFAULT_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml1bGFwZmJqd2NrZmNkaGdoc3pmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQxNTkzMDMsImV4cCI6MjEwOTczNTMwM30.lx5awUV1CXH61ViE8AqVG0Xcs-qkEllBBnwaDfgtMTg";
+
+const rawUrl = process.env.SUPABASE_URL || DEFAULT_SUPABASE_URL;
+const rawKey = process.env.SUPABASE_ANON_KEY || DEFAULT_SUPABASE_KEY;
+
+const SUPABASE_URL = rawUrl.trim().replace(/^["']|["']$/g, '');
+const SUPABASE_ANON_KEY = (rawKey === 'placeholder' || !rawKey.trim()) ? DEFAULT_SUPABASE_KEY : rawKey.trim().replace(/^["']|["']$/g, '');
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 console.log(`🔗 Supabase Client Connected to: ${SUPABASE_URL}`);
 
@@ -115,7 +121,12 @@ function saveSettings(settings) {
 function getServiceAccount() {
   if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
     try {
-      return JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+      const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON.trim();
+      const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (parsed.private_key) {
+        parsed.private_key = parsed.private_key.replace(/\\n/g, '\n');
+      }
+      return parsed;
     } catch (e) {
       console.error("Error parsing GOOGLE_SERVICE_ACCOUNT_JSON from env:", e);
     }
