@@ -1,0 +1,2555 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roma Cafe | لوحة تحكم الكاشير والإدارة الشاملة</title>
+  <!-- Google Fonts: Cairo -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- HTML5 QR Code Scanner -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <!-- jsQR High Performance QR Decoder -->
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            coffee: {
+              950: '#120a07',
+              900: '#1b0f0b',
+              800: '#2c1810',
+              700: '#3d2318',
+              600: '#5c3826',
+              500: '#8b5a3c',
+              400: '#b07d58',
+              300: '#d5a67f',
+              200: '#ebcfb7',
+              100: '#f8efe7',
+              50: '#fbf8f5'
+            },
+            bakery: {
+              950: '#1d1208',
+              900: '#2b1d0c',
+              800: '#4a3219',
+              700: '#684522',
+              600: '#8a5c2d',
+              500: '#b87b3d',
+              400: '#d99b59',
+              300: '#ebc08d',
+              200: '#f3d9b8'
+            },
+            gold: {
+              400: '#fbbf24',
+              500: '#f59e0b',
+              600: '#d97706'
+            }
+          },
+          fontFamily: {
+            cairo: ['Cairo', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Cairo', sans-serif;
+      background-color: #1b0f0b;
+      color: #f8efe7;
+      min-height: 100vh;
+    }
+    .slot-item {
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .slot-item.active {
+      transform: scale(1.06);
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: #2c1810;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #8b5a3c;
+      border-radius: 4px;
+    }
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #printableStand, #printableStand * {
+        visibility: visible;
+      }
+      #printableStand {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 20px;
+        background: white !important;
+        color: #1b0f0b !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-coffee-900 text-coffee-100 flex flex-col min-h-screen">
+
+  <!-- Admin PIN Lock Overlay (Protects Admin & Cashier Portal against public unauthorized access) -->
+  <div id="adminPinLockOverlay" class="fixed inset-0 z-50 bg-coffee-950/95 backdrop-blur-xl flex items-center justify-center p-4">
+    <div class="max-w-sm w-full bg-coffee-900 border-2 border-gold-500/50 rounded-3xl p-6 sm:p-8 text-center space-y-5 shadow-2xl relative overflow-hidden">
+      <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-gold-500 to-amber-700 text-coffee-950 flex items-center justify-center text-3xl mx-auto shadow-lg shadow-gold-500/30">
+        <i class="fa-solid fa-lock"></i>
+      </div>
+      <div>
+        <h2 class="text-xl font-black text-white">لوحة تحكم Roma Cafe</h2>
+        <p class="text-xs text-coffee-300 mt-1">يرجى إدخال رمز المرور (PIN) للوصول</p>
+      </div>
+
+      <!-- PIN Error Alert -->
+      <div id="pinErrorAlert" class="hidden p-3 bg-red-950/90 border border-red-500 rounded-xl text-red-200 text-xs font-bold leading-relaxed"></div>
+
+      <form onsubmit="handleAdminLogin(event)" class="space-y-4">
+        <div>
+          <input type="password" id="adminPinInputField" required placeholder="رمز الـ PIN (مثال: 1234)" autocomplete="current-password" autofocus
+            class="w-full text-center tracking-widest text-lg font-mono py-3.5 px-4 rounded-2xl bg-coffee-950 border-2 border-coffee-600 focus:border-gold-500 focus:outline-none text-gold-400 font-bold placeholder-coffee-500 transition">
+        </div>
+
+        <button type="submit" id="adminLoginBtn" class="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-gold-500 to-amber-500 hover:from-gold-400 hover:to-amber-400 active:scale-95 text-coffee-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-gold-500/30 transition">
+          <i class="fa-solid fa-key"></i>
+          <span>فتح لوحة التحكم</span>
+        </button>
+      </form>
+
+      <p class="text-[11px] text-coffee-400">
+        الرمز الافتراضي للنظام هو <code class="text-gold-400 font-mono">1234</code> (يمكنك تغييره من ملف <code class="text-gold-400">.env</code>)
+      </p>
+    </div>
+  </div>
+
+  <!-- Header & Navigation -->
+  <header class="bg-coffee-800/90 backdrop-blur-md border-b border-coffee-700/60 sticky top-0 z-40 px-4 lg:px-8 py-3.5">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <!-- Brand & Lock Button -->
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-gold-600 to-coffee-500 flex items-center justify-center shadow-lg shadow-gold-600/20">
+          <i class="fa-solid fa-mug-hot text-xl text-white"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-xl font-extrabold tracking-wide text-white">Roma Cafe</h1>
+            <span class="text-xs bg-gold-500/20 text-gold-400 font-semibold px-2 py-0.5 rounded-full border border-gold-500/30">Admin & Cashier</span>
+            <button onclick="lockAdminPortal()" title="قفل لوحة التحكم" class="text-[10px] px-2 py-0.5 rounded-lg bg-red-950/60 text-red-300 border border-red-800 hover:bg-red-900 transition flex items-center gap-1">
+              <i class="fa-solid fa-lock text-[9px]"></i>
+              <span>قفل</span>
+            </button>
+          </div>
+          <p class="text-xs text-coffee-300">لوحة تحكم الكاشير والإدارة الشاملة وإشعارات Google Wallet</p>
+        </div>
+      </div>
+
+      <!-- Desktop Navigation Tabs (Hidden on mobile, mobile uses bottom app bar) -->
+      <nav class="hidden lg:flex items-center gap-1.5 overflow-x-auto py-1">
+        <button onclick="switchTab('cashier')" id="tab-cashier" class="nav-tab active px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 bg-gold-500 text-coffee-900 shadow-md">
+          <i class="fa-solid fa-stamp"></i>
+          <span>شاشة الكاشير</span>
+        </button>
+        <button onclick="switchTab('zbon-qr')" id="tab-zbon-qr" class="nav-tab px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 text-coffee-200 hover:bg-coffee-700/60 transition">
+          <i class="fa-solid fa-qrcode"></i>
+          <span>ستاند الزبائن (zbon)</span>
+        </button>
+        <button onclick="switchTab('push-notifications')" id="tab-push-notifications" class="nav-tab px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 text-coffee-200 hover:bg-coffee-700/60 transition">
+          <i class="fa-solid fa-bell"></i>
+          <span>تنبيهات فورية (Push 🔔)</span>
+        </button>
+        <button onclick="switchTab('new-customer')" id="tab-new-customer" class="nav-tab px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 text-coffee-200 hover:bg-coffee-700/60 transition">
+          <i class="fa-solid fa-user-plus"></i>
+          <span>تسجيل زبون جديد</span>
+        </button>
+        <button onclick="switchTab('customers-list')" id="tab-customers-list" class="nav-tab px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 text-coffee-200 hover:bg-coffee-700/60 transition">
+          <i class="fa-solid fa-users"></i>
+          <span>سجل الزبائن والإحصائيات</span>
+        </button>
+        <button onclick="switchTab('settings')" id="tab-settings" class="nav-tab px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 text-gold-400 bg-gold-500/10 border border-gold-500/30 hover:bg-gold-500/20 transition">
+          <i class="fa-solid fa-sliders"></i>
+          <span>إعدادات البرنامج والموقع ⚙️</span>
+        </button>
+        <button onclick="switchTab('diagnostics')" id="tab-diagnostics" class="nav-tab px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 text-coffee-300 hover:bg-coffee-700/60 transition">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span>فحص الربط</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Mobile Fixed Bottom Navigation Bar -->
+  <nav class="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-coffee-950/95 border-t border-coffee-700/80 backdrop-blur-lg px-2 py-2 flex items-center justify-around shadow-2xl">
+    <button onclick="switchTab('cashier')" id="m-tab-cashier" class="mobile-nav-btn active flex flex-col items-center justify-center py-1 px-2.5 rounded-xl text-gold-400 transition">
+      <i class="fa-solid fa-stamp text-lg mb-0.5"></i>
+      <span class="text-[10px] font-bold">الكاشير</span>
+    </button>
+    <button onclick="switchTab('customers-list')" id="m-tab-customers-list" class="mobile-nav-btn flex flex-col items-center justify-center py-1 px-2.5 rounded-xl text-coffee-400 transition">
+      <i class="fa-solid fa-users text-lg mb-0.5"></i>
+      <span class="text-[10px] font-bold">الزبائن</span>
+    </button>
+    <button onclick="switchTab('push-notifications')" id="m-tab-push-notifications" class="mobile-nav-btn flex flex-col items-center justify-center py-1 px-2.5 rounded-xl text-coffee-400 transition">
+      <i class="fa-solid fa-bell text-lg mb-0.5"></i>
+      <span class="text-[10px] font-bold">إشعارات</span>
+    </button>
+    <button onclick="switchTab('new-customer')" id="m-tab-new-customer" class="mobile-nav-btn flex flex-col items-center justify-center py-1 px-2.5 rounded-xl text-coffee-400 transition">
+      <i class="fa-solid fa-user-plus text-lg mb-0.5"></i>
+      <span class="text-[10px] font-bold">تسجيل</span>
+    </button>
+    <button onclick="switchTab('settings')" id="m-tab-settings" class="mobile-nav-btn flex flex-col items-center justify-center py-1 px-2.5 rounded-xl text-coffee-400 transition">
+      <i class="fa-solid fa-gear text-lg mb-0.5"></i>
+      <span class="text-[10px] font-bold">إعدادات</span>
+    </button>
+  </nav>
+
+  <!-- Main Content Container (With bottom padding for mobile app bar) -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5 lg:p-8 pb-24 lg:pb-8">
+
+    <!-- ======================================================== -->
+    <!-- TAB 1: CASHIER SCREEN (Dual Program: Drinks & Bakery)   -->
+    <!-- ======================================================== -->
+    <section id="view-cashier" class="space-y-4 sm:space-y-6">
+      
+      <!-- Top Search & Dual Scan Toolbar -->
+      <div class="bg-coffee-800 rounded-3xl p-4 sm:p-5 border border-coffee-700/80 shadow-xl">
+        <div class="flex flex-col md:flex-row gap-3 items-center justify-between">
+          <div class="w-full md:w-2/3 flex items-center gap-2">
+            <div class="relative flex-1">
+              <i class="fa-solid fa-magnifying-glass absolute right-3.5 top-3 text-coffee-400 text-sm"></i>
+              <input type="text" id="cashierSearchInput" placeholder="ابحث برقم الهاتف أو الاسم أو امسح الكود..." 
+                class="w-full pr-10 pl-3 py-2.5 sm:py-3 rounded-2xl bg-coffee-900 border border-coffee-600 focus:border-gold-500 focus:outline-none text-white placeholder-coffee-400 font-medium text-xs sm:text-sm transition">
+            </div>
+            <button onclick="searchCustomer()" class="px-4 py-2.5 sm:py-3 rounded-2xl bg-gold-500 hover:bg-gold-400 active:scale-95 text-coffee-950 font-bold text-xs sm:text-sm flex items-center gap-1.5 transition shadow shrink-0">
+              <i class="fa-solid fa-search"></i>
+              <span>بحث</span>
+            </button>
+          </div>
+
+          <!-- Dual Camera Scanner Buttons -->
+          <div class="w-full md:w-auto flex items-center gap-2">
+            <!-- Native Mobile Camera Button (Works 100% on ANY mobile over local HTTP!) -->
+            <button onclick="openMobileCamera()" type="button" class="flex-1 md:flex-initial px-3.5 py-2.5 sm:py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-gold-500 hover:from-amber-400 hover:to-gold-400 active:scale-95 text-coffee-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 transition shadow">
+              <i class="fa-solid fa-camera text-base"></i>
+              <span>كاميرا الهاتف 📸</span>
+            </button>
+
+            <!-- Live Stream Scanner -->
+            <button onclick="toggleCameraScanner()" id="scannerToggleBtn" type="button" class="flex-1 md:flex-initial px-3.5 py-2.5 sm:py-3 rounded-2xl bg-coffee-700 hover:bg-coffee-600 border border-coffee-500 active:scale-95 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition shadow">
+              <i class="fa-solid fa-video text-gold-400 text-sm"></i>
+              <span id="scannerBtnText">بث مباشر</span>
+            </button>
+          </div>
+
+          <!-- Hidden Native Camera File Input for Mobile Capture -->
+          <input type="file" id="mobileCameraInput" accept="image/*" capture="environment" class="hidden" onchange="handleMobileCameraCapture(event)">
+        </div>
+
+        <!-- Camera Scanner Viewport -->
+        <div id="cameraScannerContainer" class="hidden mt-4 p-4 bg-coffee-900 rounded-2xl border border-coffee-600">
+          <div class="flex justify-between items-center mb-3">
+            <span class="text-xs sm:text-sm font-bold text-gold-400 flex items-center gap-2">
+              <i class="fa-solid fa-camera"></i> وجه كاميرا الهاتف نحو كود QR لكارت محفظة الزبون
+            </span>
+            <button onclick="stopCameraScanner()" class="text-xs text-red-400 hover:text-red-300 font-bold px-2.5 py-1 rounded-lg bg-red-950/40 border border-red-800">
+              <i class="fa-solid fa-xmark"></i> إغلاق الكاميرا
+            </button>
+          </div>
+          <div id="qrReader" class="max-w-md mx-auto overflow-hidden rounded-2xl border-2 border-gold-500"></div>
+        </div>
+      </div>
+
+      <!-- Quick 1-Tap Action Bar (Optimized specifically for Fast Mobile Cashier) -->
+      <div class="bg-coffee-800/90 rounded-2xl p-3 border border-gold-500/30 shadow-lg">
+        <div class="flex items-center justify-between mb-2 px-1">
+          <span class="text-xs font-bold text-gold-300 flex items-center gap-1.5">
+            <i class="fa-solid fa-bolt text-gold-400"></i>
+            <span>إجراءات فورية بنقرة واحدة (تحديث وتنبيه فوري بالهاتف ⚡):</span>
+          </span>
+          <span id="quickCashierStatusBadge" class="text-[10px] text-coffee-400 font-mono">جاهز</span>
+        </div>
+        
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <!-- +1 Drinks Stamp -->
+          <button type="button" onclick="executeQuickAdd('DRINKS', 1)" 
+            class="py-3 px-2 rounded-xl bg-gradient-to-r from-gold-500 to-amber-500 hover:from-gold-400 hover:to-amber-400 active:scale-95 text-coffee-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md border border-gold-200">
+            <i class="fa-solid fa-mug-hot text-base"></i>
+            <span>+1 ختم مشروب ☕</span>
+          </button>
+
+          <!-- +1 Bakery Stamp -->
+          <button type="button" onclick="executeQuickAdd('BAKERY', 1)" 
+            class="py-3 px-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 active:scale-95 text-coffee-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md border border-amber-300">
+            <i class="fa-solid fa-croissant text-base"></i>
+            <span>+1 ختم مخبوزات 🥐</span>
+          </button>
+
+          <!-- Redeem Free Reward -->
+          <button type="button" onclick="executeQuickRedeem(activeProgram)" id="quickRedeemBtnTop"
+            class="col-span-2 sm:col-span-1 py-3 px-2 rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 active:scale-95 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md border border-emerald-400">
+            <i class="fa-solid fa-gift text-base"></i>
+            <span>استبدال مكافأة مجانية 🎁</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Active Customer Card & Stamp Dashboard -->
+      <div id="customerActiveSection" class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
+        
+        <!-- Left: Customer Profile & Digital Pass Visualization (7 cols) -->
+        <div class="lg:col-span-7 bg-coffee-800 rounded-3xl p-6 border border-coffee-700 shadow-2xl relative overflow-hidden flex flex-col justify-between">
+          
+          <div class="absolute -right-16 -top-16 w-56 h-56 bg-gold-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+          <div>
+            <!-- Customer Summary Header -->
+            <div class="flex items-start justify-between mb-5">
+              <div class="flex items-center gap-4">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-coffee-700 to-coffee-600 border-2 border-gold-500/50 flex items-center justify-center text-2xl text-gold-400 shadow-inner">
+                  <i class="fa-solid fa-user"></i>
+                </div>
+                <div>
+                  <h2 id="activeCustName" class="text-2xl font-black text-white">لا يوجد زبون محدد</h2>
+                  <div class="flex flex-wrap items-center gap-2 mt-1">
+                    <span id="activeCustPhone" class="text-sm text-coffee-300 font-mono flex items-center gap-1.5">
+                      <i class="fa-solid fa-phone text-xs text-gold-500"></i> --
+                    </span>
+                    <span id="activeCustIdTag" class="text-xs bg-coffee-700 text-coffee-300 px-2.5 py-0.5 rounded-lg font-mono">
+                      ID: --
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Free Reward Alert Badge -->
+              <div id="freeRewardBadge" class="hidden animate-bounce bg-gradient-to-r from-emerald-600 to-green-500 text-white font-extrabold text-xs px-3.5 py-2 rounded-2xl shadow-lg flex items-center gap-2 border border-emerald-400">
+                <i class="fa-solid fa-gift text-base"></i>
+                <span id="freeRewardBadgeText">مكافأة مجانية متاحة الآن!</span>
+              </div>
+            </div>
+
+            <!-- Program Selector (Drinks vs Bakery) -->
+            <div class="mb-4">
+              <label class="block text-xs font-bold text-coffee-300 mb-2">اختر بطاقة الزبون للتعامل معها:</label>
+              <div class="grid grid-cols-2 gap-3">
+                <button type="button" onclick="switchCashierProgram('DRINKS')" id="progBtn-DRINKS" 
+                  class="p-3.5 rounded-2xl border-2 border-gold-500 bg-gold-500/20 text-gold-300 font-extrabold text-sm flex items-center justify-between transition shadow-md">
+                  <span class="flex items-center gap-2">
+                    <i class="fa-solid fa-mug-hot text-lg text-gold-400"></i>
+                    <span>بطاقة المشروبات ☕</span>
+                  </span>
+                  <span id="badgeDrinksCount" class="text-xs px-2.5 py-1 rounded-full bg-gold-500 text-coffee-950 font-black">0 / 6</span>
+                </button>
+
+                <button type="button" onclick="switchCashierProgram('BAKERY')" id="progBtn-BAKERY" 
+                  class="p-3.5 rounded-2xl border-2 border-coffee-600 bg-coffee-900 text-coffee-300 font-bold text-sm flex items-center justify-between transition hover:border-bakery-500">
+                  <span class="flex items-center gap-2">
+                    <i class="fa-solid fa-croissant text-lg text-amber-400"></i>
+                    <span>بطاقة المخبوزات 🥐</span>
+                  </span>
+                  <span id="badgeBakeryCount" class="text-xs px-2.5 py-1 rounded-full bg-coffee-700 text-coffee-200 font-black">0 / 5</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Digital Card Visual Representation -->
+            <div id="cardVisualContainer" class="bg-gradient-to-br from-coffee-700 via-coffee-800 to-coffee-950 rounded-2xl p-5 border border-gold-500/40 shadow-xl mb-5 relative transition-all">
+              <div class="flex items-center justify-between border-b border-coffee-600/50 pb-3 mb-4">
+                <div class="flex items-center gap-2">
+                  <span id="activePassTitle" class="text-xs tracking-wider text-gold-400 font-extrabold uppercase">بطاقة ولاء القهوة والمشروبات ☕</span>
+                </div>
+                <div class="text-xs text-coffee-300 flex items-center gap-1.5 font-semibold">
+                  <i class="fa-brands fa-google text-gold-400"></i> Google Wallet Active
+                </div>
+              </div>
+
+              <!-- Visual Text Gauge string -->
+              <div class="mb-4">
+                <div class="flex justify-between items-center mb-2">
+                  <span class="text-xs font-bold text-coffee-200">الرصيد ومستوى الإنجاز:</span>
+                  <span id="stampsGaugeText" class="text-sm font-black text-gold-400 font-mono">0 / 6 أختام ☕ (0%)</span>
+                </div>
+                <!-- Visual Icon Bar -->
+                <div id="visualGaugeIcons" class="p-2.5 bg-coffee-950/70 rounded-xl text-center text-base sm:text-lg font-mono text-gold-300 border border-coffee-700/60 tracking-wider">
+                  ⚪ ⚪ ⚪ ⚪ ⚪ ⚪
+                </div>
+              </div>
+
+              <!-- Dynamic Interactive Stamp Slots Grid -->
+              <div class="mb-4">
+                <div class="grid grid-cols-6 gap-2" id="stampsSlotsGrid">
+                  <!-- Dynamic Slots Loaded via JS -->
+                </div>
+              </div>
+
+              <!-- Progress Bar -->
+              <div class="w-full bg-coffee-900 rounded-full h-3 overflow-hidden border border-coffee-700 mb-3">
+                <div id="stampsProgressBar" class="bg-gradient-to-r from-gold-500 to-gold-400 h-full rounded-full transition-all duration-500" style="width: 0%;"></div>
+              </div>
+
+              <!-- Card Bottom Info -->
+              <div class="flex justify-between items-center pt-3 border-t border-coffee-600/30 text-xs text-coffee-300">
+                <span>إجمالي الأختام المكتسبة: <strong id="activeCustTotalEarned" class="text-gold-400 font-bold">0</strong></span>
+                <span>المكافآت المستلمة: <strong id="activeCustFreeClaimed" class="text-emerald-400 font-bold">0</strong></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Direct Wallet Links / Pass Actions -->
+          <div class="flex flex-wrap items-center gap-2.5 pt-2">
+            <a id="openWalletBtn" href="#" target="_blank" class="flex-1 py-3 px-3 rounded-xl bg-coffee-700 hover:bg-coffee-600 border border-coffee-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition">
+              <i class="fa-solid fa-arrow-up-right-from-square text-gold-400"></i>
+              <span id="openWalletBtnText">فتح كارت المشروبات في Wallet</span>
+            </a>
+            <button onclick="shareViaWhatsApp()" class="py-3 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-2 transition">
+              <i class="fa-brands fa-whatsapp text-sm"></i>
+              <span>إرسال الرابط واتساب</span>
+            </button>
+            <button onclick="showCustomerQrModal()" class="py-3 px-4 rounded-xl bg-coffee-700 hover:bg-coffee-600 text-white font-bold text-xs flex items-center gap-2 transition">
+              <i class="fa-solid fa-qrcode text-gold-400"></i>
+              <span>عرض QR</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Right: Stamp Operations / Full Freedom Controls (5 cols) -->
+        <div class="lg:col-span-5 bg-coffee-800 rounded-3xl p-6 border border-coffee-700 shadow-2xl flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-2 mb-4">
+              <div class="w-8 h-8 rounded-lg bg-gold-500/20 text-gold-400 flex items-center justify-center font-bold">
+                <i class="fa-solid fa-sliders"></i>
+              </div>
+              <div>
+                <h3 class="text-lg font-bold text-white">إجراءات الأختام السريعة</h3>
+                <p id="operationsProgramSubtitle" class="text-xs text-gold-400">تطبيق العملية على: كارت المشروبات ☕</p>
+              </div>
+            </div>
+
+            <!-- Action Type Selector -->
+            <div class="space-y-4">
+              <div>
+                <label class="block text-xs font-bold text-coffee-300 mb-1.5">نوع العملية:</label>
+                <div class="grid grid-cols-2 gap-2">
+                  <button type="button" onclick="selectActionType('ADD_STAMP')" id="actionBtn-ADD_STAMP" class="action-type-btn p-3 rounded-xl border border-gold-500 bg-gold-500/20 text-gold-400 font-bold text-xs flex items-center justify-center gap-2 transition">
+                    <i class="fa-solid fa-plus-circle"></i>
+                    <span>إضافة أختام</span>
+                  </button>
+                  <button type="button" onclick="selectActionType('REDEEM_REWARD')" id="actionBtn-REDEEM_REWARD" class="action-type-btn p-3 rounded-xl border border-coffee-600 bg-coffee-900 text-coffee-300 font-bold text-xs flex items-center justify-center gap-2 transition">
+                    <i class="fa-solid fa-gift"></i>
+                    <span id="actionBtnTextRedeem">استبدال مكافأة ☕</span>
+                  </button>
+                  <button type="button" onclick="selectActionType('SET_COUNT')" id="actionBtn-SET_COUNT" class="action-type-btn p-3 rounded-xl border border-coffee-600 bg-coffee-900 text-coffee-300 font-bold text-xs flex items-center justify-center gap-2 transition">
+                    <i class="fa-solid fa-hashtag"></i>
+                    <span>تحديد رصيد معين</span>
+                  </button>
+                  <button type="button" onclick="selectActionType('RESET')" id="actionBtn-RESET" class="action-type-btn p-3 rounded-xl border border-coffee-600 bg-coffee-900 text-coffee-300 font-bold text-xs flex items-center justify-center gap-2 transition">
+                    <i class="fa-solid fa-rotate-left"></i>
+                    <span>تصفير الرصيد (0)</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Quantity / Delta Choice -->
+              <div id="quantityControlSection">
+                <label class="block text-xs font-bold text-coffee-300 mb-1.5" id="quantityLabel">عدد الأختام المراد إضافتها:</label>
+                <div class="flex items-center gap-2">
+                  <button type="button" onclick="setDelta(1)" class="delta-quick-btn flex-1 py-2.5 rounded-xl bg-gold-500 text-coffee-950 border border-coffee-500 font-bold text-sm" data-val="1" id="deltaBtn1">+1 فنجان</button>
+                  <button type="button" onclick="setDelta(2)" class="delta-quick-btn flex-1 py-2.5 rounded-xl bg-coffee-700 hover:bg-coffee-600 border border-coffee-500 font-bold text-sm text-white" data-val="2">+2</button>
+                  <button type="button" onclick="setDelta(3)" class="delta-quick-btn flex-1 py-2.5 rounded-xl bg-coffee-700 hover:bg-coffee-600 border border-coffee-500 font-bold text-sm text-white" data-val="3">+3</button>
+                  <input type="number" id="customDeltaInput" min="1" max="10" value="1" oninput="onCustomDeltaChange(this.value)"
+                    class="w-20 text-center py-2.5 rounded-xl bg-coffee-900 border border-coffee-600 text-white font-bold text-sm focus:border-gold-500 focus:outline-none">
+                </div>
+              </div>
+
+              <!-- Cashier Name & Notes -->
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-bold text-coffee-300 mb-1">اسم الكاشير:</label>
+                  <input type="text" id="cashierNameInput" value="كاشير Roma" 
+                    class="w-full py-2 px-3 rounded-xl bg-coffee-900 border border-coffee-600 text-white text-xs focus:border-gold-500 focus:outline-none">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-coffee-300 mb-1">ملاحظة الطلب (اختياري):</label>
+                  <input type="text" id="operationNotesInput" placeholder="فلات وايت، كرواسون..." 
+                    class="w-full py-2 px-3 rounded-xl bg-coffee-900 border border-coffee-600 text-white text-xs focus:border-gold-500 focus:outline-none">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Confirmation Trigger Button -->
+          <div class="mt-6 pt-4 border-t border-coffee-700">
+            <button onclick="requestOperationConfirmation()" class="w-full py-4 rounded-2xl bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-400 hover:to-gold-500 text-coffee-950 font-black text-base flex items-center justify-center gap-3 shadow-lg shadow-gold-500/20 transition transform active:scale-98">
+              <i class="fa-solid fa-circle-check text-lg"></i>
+              <span id="confirmButtonLabel">تأكيد العملية وتحديث Google Wallet</span>
+            </button>
+            <p class="text-center text-xs text-coffee-400 mt-2 flex items-center justify-center gap-1">
+              <i class="fa-solid fa-shield text-gold-500/80"></i>
+              يتم إشعار هاتف الزبون فوراً وتحديث شريط التقدم على محفظته
+            </p>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Quick Recent Activity Log in Cashier Screen -->
+      <div class="bg-coffee-800 rounded-3xl p-5 border border-coffee-700 shadow-xl">
+        <h4 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+          <i class="fa-solid fa-clock-rotate-left text-gold-400"></i>
+          <span>آخر حركات الكاشير المسجلة</span>
+        </h4>
+        <div id="cashierRecentTransactions" class="space-y-2 max-h-48 overflow-y-auto custom-scroll">
+          <!-- Loaded dynamically -->
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- TAB 2: CUSTOMER QR STAND (zbon) FOR TABLE & COUNTER     -->
+    <!-- ======================================================== -->
+    <section id="view-zbon-qr" class="hidden space-y-6">
+      <div class="max-w-3xl mx-auto bg-coffee-800 rounded-3xl p-6 sm:p-10 border border-gold-500/40 shadow-2xl text-center space-y-6">
+        
+        <div>
+          <span class="text-xs font-bold px-3 py-1 rounded-full bg-gold-500/20 text-gold-400 border border-gold-500/30">
+            شاشة ستاند الكاشير والطاولات (Customer Facing Stand)
+          </span>
+          <h2 class="text-2xl sm:text-3xl font-black text-white mt-3">امسح الرمز وانضم لبرنامج الولاء ☕🥐</h2>
+          <p class="text-xs sm:text-sm text-coffee-300 mt-2 max-w-lg mx-auto leading-relaxed">
+            دع الزبون يمسح هذا الرمز بكاميرا هاتفه لينتقل لصفحة <strong class="text-gold-400 font-mono">/zbon</strong> ويحصل على بطاقات Google Wallet للمشروبات والمخبوزات معاً!
+          </p>
+        </div>
+
+        <!-- Big Display QR Container (Printable Stand) -->
+        <div id="printableStand" class="inline-block p-6 sm:p-8 bg-white rounded-3xl shadow-2xl border-4 border-gold-500 transform hover:scale-102 transition duration-300">
+          <div class="text-center mb-3">
+            <h3 class="text-2xl font-black text-coffee-900 tracking-wider">ROMA CAFE</h3>
+            <p class="text-xs text-gold-600 font-bold">بطاقات الولاء الرقمية الرسمية</p>
+          </div>
+
+          <img id="zbonQrImage" src="" alt="Roma Cafe Zbon QR" class="w-64 h-64 sm:w-72 sm:h-72 mx-auto object-contain">
+          
+          <div class="mt-4 pt-3 border-t-2 border-dashed border-gray-300 text-center">
+            <p class="text-sm font-black text-coffee-950">امسح بكاميرا الهاتف واحصل على بطاقتك فوراً!</p>
+            <p class="text-xs text-gray-700 font-bold mt-0.5">اجمع أختام قهوتك ومخبوزاتك واستمتع بمكافآتك مجاناً ☕🥐</p>
+          </div>
+        </div>
+
+        <!-- URL Field & Controls -->
+        <div class="max-w-lg mx-auto bg-coffee-900 p-4 rounded-2xl border border-coffee-700 space-y-3">
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-coffee-400 font-bold whitespace-nowrap">رابط صفحة الزبون:</span>
+            <input type="text" id="zbonUrlInput" oninput="onCustomZbonUrlChange(this.value)"
+              class="w-full py-2 px-3 rounded-xl bg-black/60 border border-coffee-700 text-gold-400 font-mono text-xs text-left" dir="ltr"
+              placeholder="http://192.168.1.26:3000/zbon أو الدومين الخاص بك">
+            <button onclick="copyZbonUrl()" class="px-3.5 py-2 rounded-xl bg-gold-500 hover:bg-gold-400 text-coffee-950 font-bold text-xs whitespace-nowrap transition">
+              <i class="fa-solid fa-copy"></i> نسخ
+            </button>
+          </div>
+
+          <p class="text-[11px] text-coffee-400 text-right">
+            💡 ملاحظة: يعمل محلياً لجميع الهواتف المتصلة بنفس شبكة الواي فاي أو عبر دومين عام.
+          </p>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
+          <a id="previewZbonBtn" href="/zbon" target="_blank" class="py-3 px-5 rounded-xl bg-coffee-700 hover:bg-coffee-600 border border-coffee-500 text-white font-bold text-xs flex items-center gap-2 transition">
+            <i class="fa-solid fa-arrow-up-right-from-square text-gold-400"></i>
+            <span>معاينة صفحة الزبون كما يراها في هاتفه</span>
+          </a>
+          <button onclick="printCustomerStand()" class="py-3 px-5 rounded-xl bg-gold-500 hover:bg-gold-400 text-coffee-950 font-black text-xs flex items-center gap-2 shadow-lg shadow-gold-500/20 transition">
+            <i class="fa-solid fa-print"></i>
+            <span>طباعة ستاند الكاشير / الطاولة (Standee)</span>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- TAB 3: PUSH NOTIFICATIONS TO CUSTOMERS' GOOGLE WALLET  -->
+    <!-- ======================================================== -->
+    <section id="view-push-notifications" class="hidden space-y-6">
+      <div class="max-w-3xl mx-auto bg-coffee-800 rounded-3xl p-6 sm:p-10 border border-gold-500/40 shadow-2xl space-y-6">
+        
+        <div class="text-center">
+          <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-gold-500 to-amber-600 text-coffee-950 flex items-center justify-center text-3xl mx-auto mb-3 shadow-lg shadow-gold-500/20">
+            <i class="fa-solid fa-bell"></i>
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-black text-white">إرسال تنبيهات لهواتف الزبائن (Push Notifications)</h2>
+          <p class="text-xs sm:text-sm text-coffee-300 mt-2 max-w-lg mx-auto leading-relaxed">
+            أرسل إشعاراً فورياً مع صوت واهتزاز يصل مباشرة لشاشة قفل هواتف الزبائن الذين أضافوا كارت <strong class="text-gold-400">Google Wallet</strong>!
+          </p>
+        </div>
+
+        <form id="pushNotificationForm" onsubmit="handleSendPushNotification(event)" class="space-y-5 text-right">
+          
+          <!-- Target & Category Selector -->
+          <div class="bg-coffee-900 p-4 rounded-2xl border border-coffee-700 space-y-3">
+            <label class="block text-xs font-bold text-coffee-300">لمن تريد إرسال هذا التنبيه؟</label>
+            <div class="grid grid-cols-2 gap-3">
+              <label class="flex items-center gap-2 p-3 rounded-xl bg-coffee-800 border border-gold-500/60 cursor-pointer hover:bg-coffee-700 transition">
+                <input type="radio" name="notifyTarget" value="ALL" checked onchange="toggleNotifyTarget(this.value)" class="text-gold-500 focus:ring-gold-500">
+                <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                  <i class="fa-solid fa-bullhorn text-gold-400"></i>
+                  جميع حاملي البطاقات (جماعي 📢)
+                </span>
+              </label>
+
+              <label class="flex items-center gap-2 p-3 rounded-xl bg-coffee-800 border border-coffee-700 cursor-pointer hover:bg-coffee-700 transition">
+                <input type="radio" name="notifyTarget" value="SINGLE" onchange="toggleNotifyTarget(this.value)" class="text-gold-500 focus:ring-gold-500">
+                <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                  <i class="fa-solid fa-user text-gold-400"></i>
+                  الزبون المحدد حالياً فقط 👤
+                </span>
+              </label>
+            </div>
+
+            <!-- Program Target: Drinks, Bakery, or Both -->
+            <div class="pt-2 border-t border-coffee-800 flex items-center gap-2">
+              <span class="text-xs text-coffee-400 font-bold">توجيه التنبيه لبطاقة:</span>
+              <select id="notifyProgramType" class="py-1.5 px-3 rounded-xl bg-coffee-950 border border-coffee-700 text-xs text-gold-300 font-bold focus:outline-none">
+                <option value="DRINKS">☕ بطاقات المشروبات</option>
+                <option value="BAKERY">🥐 بطاقات المخبوزات</option>
+              </select>
+            </div>
+
+            <!-- Single Target Details -->
+            <div id="singleTargetInfo" class="hidden mt-2 p-2.5 bg-coffee-950/60 rounded-xl text-xs text-coffee-300 border border-coffee-800">
+              سيتم الإرسال للزبون: <strong id="notifySelectedCustName" class="text-gold-400 font-bold">--</strong>
+            </div>
+          </div>
+
+          <!-- Quick Template Pills -->
+          <div>
+            <label class="block text-xs font-bold text-coffee-300 mb-2">قوالب رسائل سريعة بنقرة زر:</label>
+            <div class="flex flex-wrap gap-2">
+              <button type="button" onclick="applyPushTemplate('WEEKEND_OFFER')" class="px-3 py-1.5 rounded-xl bg-coffee-700 hover:bg-coffee-600 border border-coffee-500 text-xs font-semibold text-coffee-200 transition">
+                ☕ عرض نهاية الأسبوع
+              </button>
+              <button type="button" onclick="applyPushTemplate('STAMP_REMINDER')" class="px-3 py-1.5 rounded-xl bg-coffee-700 hover:bg-coffee-600 border border-coffee-500 text-xs font-semibold text-coffee-200 transition">
+                🎉 تذكير بالأختام والقهوة المجانية
+              </button>
+              <button type="button" onclick="applyPushTemplate('NEW_BAKERY')" class="px-3 py-1.5 rounded-xl bg-coffee-700 hover:bg-coffee-600 border border-coffee-500 text-xs font-semibold text-coffee-200 transition">
+                🥐 كرواسون وحلى طازج اليوم
+              </button>
+            </div>
+          </div>
+
+          <!-- Notification Title (Header) -->
+          <div>
+            <label class="block text-xs font-bold text-coffee-200 mb-1.5">عنوان التنبيه (يظهر بخط عريض على شاشة الهاتف):</label>
+            <div class="relative">
+              <i class="fa-solid fa-heading absolute right-4 top-3.5 text-coffee-400 text-xs"></i>
+              <input type="text" id="notifyHeaderInput" required placeholder="مثال: عرض اليوم الخاص في Roma Cafe ☕" 
+                class="w-full pr-11 pl-4 py-3 rounded-xl bg-coffee-900 border border-coffee-600 focus:border-gold-500 focus:outline-none text-white text-sm">
+            </div>
+          </div>
+
+          <!-- Notification Message (Body) -->
+          <div>
+            <label class="block text-xs font-bold text-coffee-200 mb-1.5">نص التنبيه:</label>
+            <textarea id="notifyBodyInput" required rows="3" placeholder="مثال: استمتع بكوب قهوتك المفضل اليوم واحصل على حلى مجاناً عند استكمال أختامك!" 
+              class="w-full p-4 rounded-xl bg-coffee-900 border border-coffee-600 focus:border-gold-500 focus:outline-none text-white text-sm custom-scroll"></textarea>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" id="sendPushSubmitBtn" class="w-full py-4 rounded-2xl bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-coffee-950 font-black text-base flex items-center justify-center gap-2 shadow-lg shadow-gold-500/25 transition transform active:scale-98">
+            <i class="fa-solid fa-paper-plane text-lg"></i>
+            <span>إرسال التنبيه الآن لهواتف الزبائن 📱</span>
+          </button>
+
+          <p class="text-center text-[11px] text-coffee-400 flex items-center justify-center gap-1">
+            <i class="fa-solid fa-shield text-gold-500/80"></i>
+            يصل التنبيه عبر خدمة Google Wallet الرسمية ويهتز هاتف الزبون بإشعار مقهى Roma Cafe
+          </p>
+
+        </form>
+
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- TAB 4: REGISTER NEW CUSTOMER MANUALLY (BY CASHIER)       -->
+    <!-- ======================================================== -->
+    <section id="view-new-customer" class="hidden space-y-6">
+      <div class="max-w-2xl mx-auto bg-coffee-800 rounded-3xl p-6 sm:p-8 border border-coffee-700 shadow-2xl">
+        <div class="text-center mb-6">
+          <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-gold-500 to-coffee-600 text-white flex items-center justify-center text-2xl mx-auto mb-3 shadow-lg shadow-gold-500/20">
+            <i class="fa-solid fa-id-card"></i>
+          </div>
+          <h2 class="text-2xl font-black text-white">تسجيل زبون يدوي وإصدار الكروت</h2>
+          <p class="text-sm text-coffee-300 mt-1">سجل بيانات الزبون لإنشاء بطاقتي المشروبات والمخبوزات وتوليد الروابط فوراً</p>
+        </div>
+
+        <form id="newCustomerForm" onsubmit="handleCreateCustomer(event)" class="space-y-4">
+          <div>
+            <label class="block text-sm font-bold text-coffee-200 mb-1.5">اسم الزبون الكامل:</label>
+            <div class="relative">
+              <i class="fa-solid fa-user absolute right-4 top-3.5 text-coffee-400"></i>
+              <input type="text" id="newCustFullName" required placeholder="مثال: أحمد خليل" 
+                class="w-full pr-11 pl-4 py-3 rounded-xl bg-coffee-900 border border-coffee-600 focus:border-gold-500 focus:outline-none text-white text-sm">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-bold text-coffee-200 mb-1.5">رقم الهاتف (Mobile):</label>
+            <div class="relative">
+              <i class="fa-solid fa-phone absolute right-4 top-3.5 text-coffee-400"></i>
+              <input type="tel" id="newCustPhone" required placeholder="مثال: 0599123456" 
+                class="w-full pr-11 pl-4 py-3 rounded-xl bg-coffee-900 border border-coffee-600 focus:border-gold-500 focus:outline-none text-white text-sm font-mono">
+            </div>
+          </div>
+
+          <button type="submit" id="createCustSubmitBtn" class="w-full py-4 rounded-xl bg-gold-500 hover:bg-gold-400 text-coffee-950 font-black text-base flex items-center justify-center gap-2 shadow-lg shadow-gold-500/20 transition mt-4">
+            <i class="fa-solid fa-bolt"></i>
+            <span>توليد كروت Google Wallet فوراً</span>
+          </button>
+        </form>
+
+        <!-- Result Box -->
+        <div id="newCustomerResultCard" class="hidden mt-8 pt-6 border-t border-coffee-700 space-y-5 animate-fade-in">
+          <div id="newCustSuccessBadge" class="p-4 bg-emerald-950/40 border border-emerald-600/50 rounded-2xl flex items-center gap-3 text-emerald-300 text-sm font-bold">
+            <i class="fa-solid fa-circle-check text-xl"></i>
+            <span id="newCustSuccessMsg">تم تسجيل الزبون في Supabase وتوليد البطاقات بنجاح!</span>
+          </div>
+
+          <!-- Master 1-Click Both Passes Save Button -->
+          <div class="bg-gradient-to-r from-amber-700 via-coffee-800 to-amber-900 p-4 rounded-2xl border-2 border-gold-400 text-center space-y-2">
+            <span class="text-xs bg-gold-500 text-coffee-950 font-black px-3 py-1 rounded-full uppercase">
+              ⭐ حفظ البطاقتين معاً (المشروبات ☕ + المخبوزات 🥐)
+            </span>
+            <p class="text-xs text-coffee-200">نقرة واحدة لتثبيت البطاقتين معاً في محفظة هاتف الزبون:</p>
+            <a id="newCustBothLink" href="#" target="_blank" class="inline-block hover:opacity-90 transition pt-1">
+              <img src="https://developers.google.com/static/wallet/retail/images/add-to-google-wallet/ar/badge.svg" 
+                   alt="Add Both to Google Wallet" 
+                   onerror="this.src='https://developers.google.com/static/wallet/retail/images/add-to-google-wallet/en/badge.svg'"
+                   class="h-14 mx-auto drop-shadow-lg">
+            </a>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- Drinks Pass Link -->
+            <div class="bg-coffee-900 p-4 rounded-2xl border border-coffee-700 text-center space-y-2">
+              <span class="text-xs font-bold text-gold-400 block">☕ كارت المشروبات منفصل</span>
+              <a id="newCustDrinksLink" href="#" target="_blank" class="inline-block hover:opacity-90 transition">
+                <img src="https://developers.google.com/static/wallet/retail/images/add-to-google-wallet/ar/badge.svg" 
+                     alt="Add to Google Wallet" 
+                     onerror="this.src='https://developers.google.com/static/wallet/retail/images/add-to-google-wallet/en/badge.svg'"
+                     class="h-11 mx-auto">
+              </a>
+            </div>
+
+            <!-- Bakery Pass Link -->
+            <div class="bg-coffee-900 p-4 rounded-2xl border border-coffee-700 text-center space-y-2">
+              <span class="text-xs font-bold text-amber-400 block">🥐 كارت المخبوزات منفصل</span>
+              <a id="newCustBakeryLink" href="#" target="_blank" class="inline-block hover:opacity-90 transition">
+                <img src="https://developers.google.com/static/wallet/retail/images/add-to-google-wallet/ar/badge.svg" 
+                     alt="Add to Google Wallet" 
+                     onerror="this.src='https://developers.google.com/static/wallet/retail/images/add-to-google-wallet/en/badge.svg'"
+                     class="h-11 mx-auto">
+              </a>
+            </div>
+          </div>
+
+          <div class="flex gap-3">
+            <button onclick="shareNewCustWhatsApp()" class="flex-1 py-3 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-2 transition">
+              <i class="fa-brands fa-whatsapp text-base"></i>
+              <span>إرسال الروابط عبر WhatsApp</span>
+            </button>
+            <button onclick="copyPassLink()" class="flex-1 py-3 px-4 rounded-xl bg-coffee-700 hover:bg-coffee-600 text-white font-bold text-xs flex items-center justify-center gap-2 transition">
+              <i class="fa-solid fa-copy"></i>
+              <span id="copyLinkBtnText">نسخ الرابط المباشر</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- TAB 5: CUSTOMERS LIST & AUDIT LOGS                       -->
+    <!-- ======================================================== -->
+    <section id="view-customers-list" class="hidden space-y-6">
+      
+      <!-- Top Stats & Export Toolbar -->
+      <div class="bg-coffee-800 rounded-3xl p-6 border border-coffee-700 shadow-2xl">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div>
+            <h2 class="text-xl font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-address-book text-gold-400"></i>
+              <span>قائمة زبائن مقهى Roma Cafe</span>
+            </h2>
+            <p class="text-xs text-coffee-300">سجل المشتركين، أختام المشروبات، أختام المخبوزات، وإجمالي المكافآت</p>
+          </div>
+          
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="exportCustomersToCSV()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-2 transition shadow">
+              <i class="fa-solid fa-file-excel"></i>
+              <span>تصدير إلى Excel (CSV) 📥</span>
+            </button>
+            <button onclick="loadAllCustomers()" class="px-4 py-2.5 rounded-xl bg-coffee-700 hover:bg-coffee-600 text-xs text-white font-bold flex items-center gap-1.5 transition">
+              <i class="fa-solid fa-rotate"></i>
+              <span>تحديث القائمة</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter / Search in Table -->
+        <div class="mb-4">
+          <input type="text" id="custTableFilterInput" oninput="filterCustomerTable(this.value)" placeholder="تصفية بالاسم أو الهاتف في القائمة..."
+            class="w-full sm:w-80 py-2 px-3 rounded-xl bg-coffee-900 border border-coffee-700 text-xs text-white placeholder-coffee-400 focus:outline-none focus:border-gold-500">
+        </div>
+
+        <!-- Desktop Table View -->
+        <div class="hidden lg:block overflow-x-auto">
+          <table class="w-full text-right text-xs">
+            <thead class="bg-coffee-900/60 text-coffee-300 border-b border-coffee-700">
+              <tr>
+                <th class="p-3.5">الزبون</th>
+                <th class="p-3.5">رقم الهاتف</th>
+                <th class="p-3.5">أختام المشروبات ☕</th>
+                <th class="p-3.5">أختام المخبوزات 🥐</th>
+                <th class="p-3.5">المكتسبة كلياً</th>
+                <th class="p-3.5">المكافآت المستلمة</th>
+                <th class="p-3.5 text-center">إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="customersTableBody" class="divide-y divide-coffee-700/50">
+              <!-- Dynamic Rows -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Mobile Touch Cards View (Responsive for Mobile Screens) -->
+        <div id="customersMobileCardsList" class="lg:hidden space-y-3">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+
+      <!-- Transaction Log -->
+      <div class="bg-coffee-800 rounded-3xl p-6 border border-coffee-700 shadow-2xl">
+        <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+          <i class="fa-solid fa-receipt text-gold-400"></i>
+          <span>سجل حركات التدقيق (Audit Transactions Log)</span>
+        </h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-right text-xs">
+            <thead class="bg-coffee-900/60 text-coffee-300 border-b border-coffee-700">
+              <tr>
+                <th class="p-3">الوقت</th>
+                <th class="p-3">الزبون</th>
+                <th class="p-3">البرنامج</th>
+                <th class="p-3">العملية</th>
+                <th class="p-3">التغيير</th>
+                <th class="p-3">الرصيد الجديد</th>
+                <th class="p-3">الكاشير</th>
+                <th class="p-3">Google Wallet</th>
+              </tr>
+            </thead>
+            <tbody id="transactionsTableBody" class="divide-y divide-coffee-700/50">
+              <!-- Dynamic Rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- TAB 6: PROGRAM SETTINGS & GEOFENCING CONFIGURATION ⚙️   -->
+    <!-- ======================================================== -->
+    <section id="view-settings" class="hidden space-y-6">
+      <div class="max-w-3xl mx-auto space-y-6">
+        
+        <!-- Header -->
+        <div class="bg-coffee-800 rounded-3xl p-6 border border-gold-500/40 shadow-2xl text-center">
+          <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-gold-500 to-amber-600 text-coffee-950 flex items-center justify-center text-2xl mx-auto mb-2 shadow-lg shadow-gold-500/20">
+            <i class="fa-solid fa-gear"></i>
+          </div>
+          <h2 class="text-2xl font-black text-white">إعدادات برنامج الولاء والموقع الجغرافي</h2>
+          <p class="text-xs text-coffee-300 mt-1 max-w-lg mx-auto">
+            تحكم بعدد الأختام المطلوبة للمكافأة، وإحداثيات مقهى Roma لتنبيه الزبائن عند الاقتراب تلقائياً عبر هواتفهم!
+          </p>
+        </div>
+
+        <form id="settingsForm" onsubmit="handleSaveSettings(event)" class="space-y-6">
+          
+          <!-- Card 1: Stamps Thresholds Rules -->
+          <div class="bg-coffee-800 rounded-3xl p-6 border border-coffee-700 shadow-xl space-y-4">
+            <h3 class="text-base font-bold text-gold-400 flex items-center gap-2">
+              <i class="fa-solid fa-award"></i>
+              <span>قواعد الأختام المطلوبة للفوز بالمكافأة</span>
+            </h3>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <!-- Drinks Threshold -->
+              <div class="p-4 bg-coffee-900 rounded-2xl border border-coffee-700 space-y-2">
+                <label class="block text-xs font-bold text-coffee-200">
+                  <i class="fa-solid fa-mug-hot text-gold-400"></i> عدد أختام المشروبات المطلوبة للربح:
+                </label>
+                <div class="flex items-center gap-2">
+                  <input type="number" id="settingDrinksMaxStamps" min="2" max="20" required value="6"
+                    class="w-full py-2.5 px-3 rounded-xl bg-black/60 border border-coffee-600 text-gold-400 font-bold text-base focus:border-gold-500 focus:outline-none">
+                  <span class="text-xs text-coffee-300 font-bold whitespace-nowrap">أختام ☕</span>
+                </div>
+                <p class="text-[11px] text-coffee-400">الافتراضي: 6 أختام للحصول على المشروب السادس مجاناً.</p>
+              </div>
+
+              <!-- Bakery Threshold -->
+              <div class="p-4 bg-coffee-900 rounded-2xl border border-coffee-700 space-y-2">
+                <label class="block text-xs font-bold text-coffee-200">
+                  <i class="fa-solid fa-croissant text-amber-400"></i> عدد أختام المخبوزات المطلوبة للربح:
+                </label>
+                <div class="flex items-center gap-2">
+                  <input type="number" id="settingBakeryMaxStamps" min="2" max="20" required value="5"
+                    class="w-full py-2.5 px-3 rounded-xl bg-black/60 border border-coffee-600 text-amber-400 font-bold text-base focus:border-gold-500 focus:outline-none">
+                  <span class="text-xs text-coffee-300 font-bold whitespace-nowrap">أختام 🥐</span>
+                </div>
+                <p class="text-[11px] text-coffee-400">الافتراضي: 5 أختام للحصول على قطعة حلى أو مخبوز مجاناً.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Geofencing Location Configuration -->
+          <div class="bg-coffee-800 rounded-3xl p-6 border border-coffee-700 shadow-xl space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="text-base font-bold text-gold-400 flex items-center gap-2">
+                <i class="fa-solid fa-location-dot"></i>
+                <span>الموقع الجغرافي للمقهى (Geofencing Alert)</span>
+              </h3>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="settingGeofenceActive" checked class="w-4 h-4 text-gold-500 rounded focus:ring-gold-500">
+                <span class="text-xs text-coffee-200 font-bold">تفعيل تنبيه الاقتراب</span>
+              </label>
+            </div>
+
+            <p class="text-xs text-coffee-300 leading-relaxed">
+              عندما يكون الزبون بالقرب من مقهى Roma Cafe، تكتشف محفظة <strong>Google Wallet</strong> إحداثيات المقهى وترسل له إشعاراً على شاشة هاتفه يذكره بزيارتكم واستخدام بطاقة الولاء!
+            </p>
+
+            <!-- Quick Paste Google Maps URL -->
+            <div class="p-4 bg-coffee-900/80 rounded-2xl border border-coffee-700 space-y-2">
+              <label class="block text-xs font-bold text-coffee-200">
+                الصق رابط خرائط Google Maps للمقهى (أو الإحداثيات مباشرة):
+              </label>
+              <div class="flex items-center gap-2">
+                <input type="text" id="gmapsUrlParserInput" placeholder="مثال: https://maps.app.goo.gl/... أو 32.2211, 35.2544" 
+                  class="flex-1 py-2.5 px-3 rounded-xl bg-black/60 border border-coffee-600 text-white text-xs font-mono focus:border-gold-500 focus:outline-none">
+                <button type="button" onclick="parseGmapsInput()" class="px-3 py-2.5 rounded-xl bg-coffee-700 hover:bg-coffee-600 text-gold-400 font-bold text-xs whitespace-nowrap transition">
+                  <i class="fa-solid fa-wand-magic-sparkles"></i> استخراج
+                </button>
+                <button type="button" onclick="detectCurrentLocation()" class="px-3 py-2.5 rounded-xl bg-gold-500 hover:bg-gold-400 text-coffee-950 font-bold text-xs whitespace-nowrap transition">
+                  <i class="fa-solid fa-location-crosshairs"></i> موقعي الحالي
+                </button>
+              </div>
+            </div>
+
+            <!-- Latitude & Longitude & Address -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-coffee-300 mb-1">خط العرض (Latitude):</label>
+                <input type="number" step="any" id="settingCafeLatitude" required value="32.2211"
+                  class="w-full py-2.5 px-3 rounded-xl bg-coffee-900 border border-coffee-600 text-white font-mono text-sm focus:border-gold-500 focus:outline-none">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-coffee-300 mb-1">خط الطول (Longitude):</label>
+                <input type="number" step="any" id="settingCafeLongitude" required value="35.2544"
+                  class="w-full py-2.5 px-3 rounded-xl bg-coffee-900 border border-coffee-600 text-white font-mono text-sm focus:border-gold-500 focus:outline-none">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-coffee-300 mb-1">عنوان / وصف الفرع:</label>
+              <input type="text" id="settingCafeAddress" value="Roma Cafe, Main Street"
+                class="w-full py-2.5 px-3 rounded-xl bg-coffee-900 border border-coffee-600 text-white text-sm focus:border-gold-500 focus:outline-none">
+            </div>
+
+            <div class="p-3 bg-gold-500/10 border border-gold-500/30 rounded-xl text-xs text-gold-300 flex items-center gap-2">
+              <i class="fa-solid fa-circle-info text-base"></i>
+              <span>عند الحفظ، سيتم تحديث كلاسات بطاقتي المشروبات والمخبوزات فوراً في سيرفرات Google Pay & Wallet Console.</span>
+            </div>
+          </div>
+
+          <!-- Save Button -->
+          <button type="submit" id="saveSettingsBtn" class="w-full py-4 rounded-2xl bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-coffee-950 font-black text-base flex items-center justify-center gap-2 shadow-lg shadow-gold-500/25 transition transform active:scale-98">
+            <i class="fa-solid fa-floppy-disk text-lg"></i>
+            <span>حفظ الإعدادات وتحديث كروت Google Wallet فوراً 💾</span>
+          </button>
+        </form>
+
+        <!-- Danger Zone: Clean Demo Data -->
+        <div class="bg-red-950/30 rounded-3xl p-6 border border-red-800/60 shadow-xl space-y-3">
+          <div class="flex items-center gap-2 text-red-400 font-bold text-sm">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span>منطقة الصيانة والبيانات التجريبية</span>
+          </div>
+          <p class="text-xs text-coffee-300 leading-relaxed">
+            إذا رغبت في بدء العمل بالفرع بشكل رسمي وتنظيف أي زبائن أو أختام تم إضافتها أثناء التجارب، يمكنك تصفير قاعدة البيانات بنقرة واحدة:
+          </p>
+          <button onclick="clearDemoDataFromDb()" class="px-5 py-2.5 rounded-xl bg-red-800 hover:bg-red-700 text-white font-bold text-xs flex items-center gap-2 transition">
+            <i class="fa-solid fa-trash-can"></i>
+            <span>مسح جميع الزبائن والحركات التجريبية (تجهيز للإنتاج)</span>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- TAB 7: DIAGNOSTICS & SYSTEM STATUS                       -->
+    <!-- ======================================================== -->
+    <section id="view-diagnostics" class="hidden space-y-6">
+      <div class="bg-coffee-800 rounded-3xl p-6 sm:p-8 border border-coffee-700 shadow-2xl">
+        <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+          <i class="fa-solid fa-server text-gold-400"></i>
+          <span>فحص حالة Google Wallet API وربط Supabase</span>
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div class="bg-coffee-900 p-5 rounded-2xl border border-coffee-700 space-y-3">
+            <h3 class="text-sm font-bold text-gold-400 flex items-center gap-2">
+              <i class="fa-brands fa-google"></i>
+              <span>إعدادات Google Wallet Issuer</span>
+            </h3>
+            <div class="text-xs space-y-2 font-mono">
+              <div class="flex justify-between border-b border-coffee-800 pb-1.5">
+                <span class="text-coffee-400">Issuer ID:</span>
+                <span class="text-white font-bold">3388000000023239265</span>
+              </div>
+              <div class="flex justify-between border-b border-coffee-800 pb-1.5">
+                <span class="text-coffee-400">Drinks Class:</span>
+                <span class="text-gold-400 font-bold">3388000000023239265.ROMA</span>
+              </div>
+              <div class="flex justify-between border-b border-coffee-800 pb-1.5">
+                <span class="text-coffee-400">Bakery Class:</span>
+                <span class="text-amber-400 font-bold">3388000000023239265.ROMA_BAKERY</span>
+              </div>
+              <div class="flex justify-between border-b border-coffee-800 pb-1.5">
+                <span class="text-coffee-400">حساب الخدمة:</span>
+                <span class="text-coffee-200 text-[11px] truncate max-w-[200px]" title="wallet-issuer@gen-lang-client-0170929101.iam.gserviceaccount.com">
+                  wallet-issuer@gen-lang...
+                </span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-coffee-400">المفتاح السري:</span>
+                <span class="text-emerald-400 font-bold flex items-center gap-1">
+                  <i class="fa-solid fa-check"></i> جاهز ومحمل
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-coffee-900 p-5 rounded-2xl border border-coffee-700 space-y-3">
+            <h3 class="text-sm font-bold text-gold-400 flex items-center gap-2">
+              <i class="fa-solid fa-database"></i>
+              <span>مشروع Supabase المتصل</span>
+            </h3>
+            <div class="text-xs space-y-2 font-mono">
+              <div class="flex justify-between border-b border-coffee-800 pb-1.5">
+                <span class="text-coffee-400">Project ID:</span>
+                <span class="text-emerald-400 font-bold">iulapfbjwckfcdhghszf</span>
+              </div>
+              <div class="flex justify-between border-b border-coffee-800 pb-1.5">
+                <span class="text-coffee-400">Supabase URL:</span>
+                <span class="text-white text-[11px]">https://iulapfbjwckfcdhghszf...</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-coffee-400">حالة الاتصال:</span>
+                <span class="text-emerald-400 font-bold flex items-center gap-1">
+                  <i class="fa-solid fa-circle-check"></i> متصل بنجاح
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-coffee-900/80 p-5 rounded-2xl border border-coffee-700">
+          <div class="flex justify-between items-center mb-3">
+            <h4 class="text-sm font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-stethoscope text-gold-400"></i>
+              <span>نتيجة فحص الاتصال الحي:</span>
+            </h4>
+            <button onclick="checkApiDiagnostics()" class="px-3.5 py-1.5 rounded-xl bg-gold-500 hover:bg-gold-400 text-coffee-950 text-xs font-bold transition">
+              إعادة الفحص الآن
+            </button>
+          </div>
+          <pre id="apiDiagnosticsResult" class="p-3.5 bg-black/60 rounded-xl text-xs text-coffee-300 font-mono overflow-x-auto max-h-60">جاري فحص الاتصال...</pre>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: OPERATION CONFIRMATION MODAL                      -->
+  <!-- ======================================================== -->
+  <div id="confirmationModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+    <div class="bg-coffee-800 border-2 border-gold-500 rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl space-y-5 text-center">
+      <div id="confirmModalIconBox" class="w-16 h-16 rounded-2xl bg-gold-500/20 text-gold-400 flex items-center justify-center text-3xl mx-auto border border-gold-500/40">
+        <i id="confirmModalIcon" class="fa-solid fa-mug-hot"></i>
+      </div>
+
+      <div>
+        <h3 id="confirmModalTitle" class="text-xl font-black text-white">تأكيد إضافة أختام</h3>
+        <p id="confirmModalDesc" class="text-sm text-coffee-300 mt-2"></p>
+      </div>
+
+      <div class="bg-coffee-900 p-3.5 rounded-2xl text-xs text-coffee-300 space-y-1.5 font-medium">
+        <div class="flex justify-between">
+          <span>الرصيد السابق:</span>
+          <span id="confirmModalPrevStamps" class="font-bold text-white">0 / 6</span>
+        </div>
+        <div class="flex justify-between">
+          <span>الرصيد الجديد المتوقع:</span>
+          <span id="confirmModalNewStamps" class="font-bold text-gold-400 text-sm">0 / 6 ☕</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 pt-2">
+        <button onclick="closeConfirmationModal()" class="py-3 px-4 rounded-xl bg-coffee-700 hover:bg-coffee-600 text-coffee-200 font-bold text-sm transition">
+          إلغاء وتراجع
+        </button>
+        <button onclick="executeConfirmedOperation()" id="confirmExecuteBtn" class="py-3 px-4 rounded-xl bg-gold-500 hover:bg-gold-400 text-coffee-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-gold-500/20 transition">
+          <i class="fa-solid fa-check"></i>
+          <span>نعم، نفذ الآن</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CUSTOMER QR CODE MODAL -->
+  <div id="customerQrModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+    <div class="bg-coffee-800 border-2 border-gold-500 rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center space-y-4">
+      <div class="flex justify-between items-center pb-2 border-b border-coffee-700">
+        <h3 class="text-base font-bold text-white">رمز QR الخاص بالزبون</h3>
+        <button onclick="closeCustomerQrModal()" class="text-coffee-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <div class="p-4 bg-white rounded-2xl inline-block shadow-inner">
+        <img id="modalQrImage" src="" alt="Customer QR" class="w-56 h-56 mx-auto object-contain">
+      </div>
+      <p id="modalQrCaption" class="text-xs text-coffee-300 font-mono"></p>
+      <button onclick="closeCustomerQrModal()" class="w-full py-2.5 rounded-xl bg-gold-500 text-coffee-950 font-bold text-xs">إغلاق</button>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed bottom-5 left-5 z-50 space-y-2 pointer-events-none"></div>
+
+  <!-- Application Logic -->
+  <script>
+    let activeCustomer = null;
+    let activeProgram = 'DRINKS'; // 'DRINKS' or 'BAKERY'
+    let currentSettings = {
+      drinksMaxStamps: 6,
+      bakeryMaxStamps: 5,
+      cafeLatitude: 32.2211,
+      cafeLongitude: 35.2544,
+      cafeAddress: "Roma Cafe, Main Street",
+      geofenceActive: true
+    };
+    let allCustomersList = [];
+    let selectedActionType = 'ADD_STAMP';
+    let selectedDelta = 1;
+    let html5QrCodeScanner = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      checkAdminAuth();
+      await loadProgramSettings();
+      initZbonQr();
+      await loadAllCustomers();
+      await loadRecentTransactions();
+      checkApiDiagnostics();
+    });
+
+    // Admin Security & PIN Authentication Handlers
+    function getAdminAuthHeaders() {
+      const token = sessionStorage.getItem('roma_admin_token') || '';
+      return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      };
+    }
+
+    async function handleAdminLogin(e) {
+      e.preventDefault();
+      const pin = document.getElementById('adminPinInputField').value.trim();
+      const alertEl = document.getElementById('pinErrorAlert');
+      alertEl.classList.add('hidden');
+
+      const btn = document.getElementById('adminLoginBtn');
+      const origText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> جاري التحقق...`;
+
+      try {
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pin })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          sessionStorage.setItem('roma_admin_token', data.token);
+          document.getElementById('adminPinLockOverlay').classList.add('hidden');
+          showToast('تم تسجيل الدخول بنجاح! مرحباً بك ☕', 'success');
+          loadAllCustomers();
+        } else {
+          alertEl.textContent = data.error || 'رمز المرور PIN غير صحيح!';
+          alertEl.classList.remove('hidden');
+        }
+      } catch (err) {
+        alertEl.textContent = 'فشل الاتصال: ' + err.message;
+        alertEl.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = origText;
+      }
+    }
+
+    function lockAdminPortal() {
+      sessionStorage.removeItem('roma_admin_token');
+      document.getElementById('adminPinInputField').value = '';
+      document.getElementById('adminPinLockOverlay').classList.remove('hidden');
+      showToast('تم قفل لوحة التحكم 🔒', 'info');
+    }
+
+    function checkAdminAuth() {
+      const token = sessionStorage.getItem('roma_admin_token');
+      if (token && token.startsWith('roma_admin_')) {
+        document.getElementById('adminPinLockOverlay').classList.add('hidden');
+      } else {
+        document.getElementById('adminPinLockOverlay').classList.remove('hidden');
+      }
+    }
+
+    // Load Program Settings from Server
+    async function loadProgramSettings() {
+      try {
+        const res = await fetch('/api/settings');
+        const data = await res.json();
+        if (data.success && data.settings) {
+          currentSettings = data.settings;
+          document.getElementById('settingDrinksMaxStamps').value = currentSettings.drinksMaxStamps;
+          document.getElementById('settingBakeryMaxStamps').value = currentSettings.bakeryMaxStamps;
+          document.getElementById('settingCafeLatitude').value = currentSettings.cafeLatitude;
+          document.getElementById('settingCafeLongitude').value = currentSettings.cafeLongitude;
+          document.getElementById('settingCafeAddress').value = currentSettings.cafeAddress;
+          document.getElementById('settingGeofenceActive').checked = !!currentSettings.geofenceActive;
+        }
+      } catch (e) {
+        console.warn("Could not load settings:", e);
+      }
+    }
+
+    // Initialize Zbon QR with automatic local network IP discovery
+    async function initZbonQr() {
+      let zbonUrl = `${window.location.origin}/zbon`;
+      try {
+        const netRes = await fetch('/api/network-info');
+        const netData = await netRes.json();
+        if (netData.zbonLocalUrl && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+          zbonUrl = netData.zbonLocalUrl;
+        }
+      } catch (e) {
+        console.warn("Could not fetch network info:", e);
+      }
+
+      document.getElementById('zbonUrlInput').value = zbonUrl;
+      document.getElementById('previewZbonBtn').href = zbonUrl;
+      updateZbonQrDisplay(zbonUrl);
+    }
+
+    function updateZbonQrDisplay(url) {
+      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=${encodeURIComponent(url)}`;
+      document.getElementById('zbonQrImage').src = qrApiUrl;
+    }
+
+    function onCustomZbonUrlChange(val) {
+      const clean = val.trim();
+      if (clean) {
+        updateZbonQrDisplay(clean);
+        document.getElementById('previewZbonBtn').href = clean;
+      }
+    }
+
+    function copyZbonUrl() {
+      const input = document.getElementById('zbonUrlInput');
+      navigator.clipboard.writeText(input.value);
+      showToast('تم نسخ رابط صفحة الزبون (/zbon) بنجاح!', 'success');
+    }
+
+    function printCustomerStand() {
+      window.print();
+    }
+
+    // Tab Navigation
+    function switchTab(tabId) {
+      // Desktop nav styling
+      document.querySelectorAll('.nav-tab').forEach(b => {
+        b.classList.remove('active', 'bg-gold-500', 'text-coffee-900', 'shadow-md');
+        b.classList.add('text-coffee-200');
+      });
+      const activeBtn = document.getElementById(`tab-${tabId}`);
+      if (activeBtn) {
+        activeBtn.classList.add('active', 'bg-gold-500', 'text-coffee-900', 'shadow-md');
+        activeBtn.classList.remove('text-coffee-200');
+      }
+
+      // Mobile bottom nav styling
+      document.querySelectorAll('.mobile-nav-btn').forEach(b => {
+        b.classList.remove('active', 'text-gold-400');
+        b.classList.add('text-coffee-400');
+      });
+      const activeMobileBtn = document.getElementById(`m-tab-${tabId}`);
+      if (activeMobileBtn) {
+        activeMobileBtn.classList.add('active', 'text-gold-400');
+        activeMobileBtn.classList.remove('text-coffee-400');
+      }
+
+      ['cashier', 'zbon-qr', 'push-notifications', 'new-customer', 'customers-list', 'settings', 'diagnostics'].forEach(id => {
+        const el = document.getElementById(`view-${id}`);
+        if (el) el.classList.add('hidden');
+      });
+
+      const target = document.getElementById(`view-${tabId}`);
+      if (target) target.classList.remove('hidden');
+
+      if (tabId === 'customers-list') {
+        loadAllCustomers();
+        loadRecentTransactions();
+      }
+
+      if (tabId === 'push-notifications' && activeCustomer) {
+        document.getElementById('notifySelectedCustName').textContent = `${activeCustomer.full_name} (${activeCustomer.phone_number})`;
+      }
+    }
+
+    // Switch between Drinks & Bakery Program in Cashier Screen
+    function switchCashierProgram(prog) {
+      activeProgram = prog;
+      const isBakery = (prog === 'BAKERY');
+
+      // Update toggle buttons styling
+      const drinksBtn = document.getElementById('progBtn-DRINKS');
+      const bakeryBtn = document.getElementById('progBtn-BAKERY');
+
+      if (isBakery) {
+        bakeryBtn.className = "p-3.5 rounded-2xl border-2 border-amber-500 bg-amber-500/20 text-amber-300 font-extrabold text-sm flex items-center justify-between transition shadow-md";
+        drinksBtn.className = "p-3.5 rounded-2xl border-2 border-coffee-600 bg-coffee-900 text-coffee-300 font-bold text-sm flex items-center justify-between transition hover:border-gold-500";
+        document.getElementById('badgeBakeryCount').className = "text-xs px-2.5 py-1 rounded-full bg-amber-500 text-coffee-950 font-black";
+        document.getElementById('badgeDrinksCount').className = "text-xs px-2.5 py-1 rounded-full bg-coffee-700 text-coffee-200 font-black";
+        
+        document.getElementById('activePassTitle').textContent = "بطاقة ولاء المخبوزات والحلويات 🥐";
+        document.getElementById('operationsProgramSubtitle').textContent = "تطبيق العملية على: كارت المخبوزات 🥐";
+        document.getElementById('actionBtnTextRedeem').textContent = "استبدال مخبوز مجاني 🥐";
+        document.getElementById('deltaBtn1').textContent = "+1 قطعة";
+        document.getElementById('openWalletBtnText').textContent = "فتح كارت المخبوزات في Wallet";
+      } else {
+        drinksBtn.className = "p-3.5 rounded-2xl border-2 border-gold-500 bg-gold-500/20 text-gold-300 font-extrabold text-sm flex items-center justify-between transition shadow-md";
+        bakeryBtn.className = "p-3.5 rounded-2xl border-2 border-coffee-600 bg-coffee-900 text-coffee-300 font-bold text-sm flex items-center justify-between transition hover:border-amber-500";
+        document.getElementById('badgeDrinksCount').className = "text-xs px-2.5 py-1 rounded-full bg-gold-500 text-coffee-950 font-black";
+        document.getElementById('badgeBakeryCount').className = "text-xs px-2.5 py-1 rounded-full bg-coffee-700 text-coffee-200 font-black";
+        
+        document.getElementById('activePassTitle').textContent = "بطاقة ولاء القهوة والمشروبات ☕";
+        document.getElementById('operationsProgramSubtitle').textContent = "تطبيق العملية على: كارت المشروبات ☕";
+        document.getElementById('actionBtnTextRedeem').textContent = "استبدال مشروب مجاني ☕";
+        document.getElementById('deltaBtn1').textContent = "+1 فنجان";
+        document.getElementById('openWalletBtnText').textContent = "فتح كارت المشروبات في Wallet";
+      }
+
+      if (activeCustomer) {
+        renderActiveCustomer(activeCustomer);
+      }
+    }
+
+    // Render Active Customer Display
+    function renderActiveCustomer(cust) {
+      activeCustomer = cust;
+      const isBakery = (activeProgram === 'BAKERY');
+      const maxStamps = isBakery ? currentSettings.bakeryMaxStamps : currentSettings.drinksMaxStamps;
+      
+      const drinksCount = Number(cust.drinks_stamps ?? cust.stamps_count ?? 0);
+      const bakeryCount = Number(cust.bakery_stamps ?? 0);
+      const currentCount = isBakery ? bakeryCount : drinksCount;
+      const clamped = Math.min(maxStamps, Math.max(0, currentCount));
+      const percent = Math.round((clamped / maxStamps) * 100);
+
+      // Customer Details
+      document.getElementById('activeCustName').textContent = cust.full_name;
+      document.getElementById('activeCustPhone').innerHTML = `<i class="fa-solid fa-phone text-xs text-gold-500"></i> ${cust.phone_number}`;
+      document.getElementById('activeCustIdTag').textContent = `ID: ${(cust.customer_id || '').slice(0, 8)}...`;
+      document.getElementById('activeCustTotalEarned').textContent = cust.total_stamps_earned || (drinksCount + bakeryCount);
+      document.getElementById('activeCustFreeClaimed').textContent = cust.free_coffees_claimed || 0;
+
+      // Badges on Selector
+      document.getElementById('badgeDrinksCount').textContent = `${drinksCount} / ${currentSettings.drinksMaxStamps}`;
+      document.getElementById('badgeBakeryCount').textContent = `${bakeryCount} / ${currentSettings.bakeryMaxStamps}`;
+
+      // Free Reward Alert Badge
+      const rewardBadge = document.getElementById('freeRewardBadge');
+      if (clamped >= maxStamps) {
+        rewardBadge.classList.remove('hidden');
+        document.getElementById('freeRewardBadgeText').textContent = isBakery ? 'مخبوز أو حلى مجاني متاح الآن!' : 'مشروب مجاني متاح الآن!';
+      } else {
+        rewardBadge.classList.add('hidden');
+      }
+
+      // Gauge String & Icons Display
+      const icon = isBakery ? '🥐' : '☕';
+      document.getElementById('stampsGaugeText').textContent = `${clamped} / ${maxStamps} أختام ${icon} (${percent}%)`;
+      
+      let gaugeStr = '';
+      for (let i = 0; i < clamped; i++) gaugeStr += `${icon} `;
+      for (let i = clamped; i < maxStamps; i++) gaugeStr += `⚪ `;
+      document.getElementById('visualGaugeIcons').textContent = `${gaugeStr} [${percent}%]`;
+
+      // Progress Bar
+      document.getElementById('stampsProgressBar').style.width = `${percent}%`;
+
+      // Interactive Slot Grid
+      const grid = document.getElementById('stampsSlotsGrid');
+      grid.innerHTML = '';
+      grid.style.gridTemplateColumns = `repeat(${maxStamps}, minmax(0, 1fr))`;
+
+      for (let i = 1; i <= maxStamps; i++) {
+        const isStamped = i <= clamped;
+        const isRewardSlot = (i === maxStamps);
+        const slot = document.createElement('div');
+        slot.className = `slot-item aspect-square rounded-2xl flex flex-col items-center justify-center border-2 transition-all duration-300 relative ${
+          isStamped 
+            ? (isBakery ? 'active bg-gradient-to-t from-amber-600 to-amber-400 border-amber-300 text-coffee-950 shadow-lg' : 'active bg-gradient-to-t from-gold-600 to-gold-400 border-gold-300 text-coffee-950 shadow-lg')
+            : 'bg-coffee-900/90 border-coffee-700/80 text-coffee-500'
+        }`;
+
+        const slotIcon = isRewardSlot ? 'fa-gift' : (isBakery ? 'fa-croissant' : 'fa-mug-hot');
+        slot.innerHTML = `
+          <div class="text-xl sm:text-2xl ${isStamped ? 'animate-pulse' : 'opacity-60'}">
+            <i class="fa-solid ${slotIcon}"></i>
+          </div>
+          <span class="text-[10px] sm:text-xs font-black mt-1 ${isStamped ? 'text-coffee-950' : 'text-coffee-400'}">
+            ${isRewardSlot ? 'مجاني' : `${i}`}
+          </span>
+          ${isStamped ? '<i class="fa-solid fa-check text-[10px] text-coffee-950 absolute top-1.5 right-1.5 font-black"></i>' : ''}
+        `;
+        grid.appendChild(slot);
+      }
+
+      // Wallet Save Links
+      let passUrl = cust.google_wallet_save_url || '';
+      try {
+        if (cust.notes && cust.notes.startsWith('{')) {
+          const meta = JSON.parse(cust.notes);
+          if (isBakery && meta.bakery_save_url) passUrl = meta.bakery_save_url;
+          else if (!isBakery && meta.drinks_save_url) passUrl = meta.drinks_save_url;
+        }
+      } catch (e) {}
+
+      document.getElementById('openWalletBtn').href = passUrl || '#';
+      selectActionType(selectedActionType);
+    }
+
+    function selectActionType(type) {
+      selectedActionType = type;
+      document.querySelectorAll('.action-type-btn').forEach(btn => {
+        btn.classList.remove('border-gold-500', 'bg-gold-500/20', 'text-gold-400', 'border-amber-500', 'bg-amber-500/20', 'text-amber-400');
+        btn.classList.add('border-coffee-600', 'bg-coffee-900', 'text-coffee-300');
+      });
+
+      const active = document.getElementById(`actionBtn-${type}`);
+      if (active) {
+        const isBakery = (activeProgram === 'BAKERY');
+        active.classList.add(isBakery ? 'border-amber-500' : 'border-gold-500', isBakery ? 'bg-amber-500/20' : 'bg-gold-500/20', isBakery ? 'text-amber-400' : 'text-gold-400');
+        active.classList.remove('border-coffee-600', 'bg-coffee-900', 'text-coffee-300');
+      }
+
+      const isBakery = (activeProgram === 'BAKERY');
+      const itemLabel = isBakery ? 'مخبوزات 🥐' : 'مشروبات ☕';
+      const qtySection = document.getElementById('quantityControlSection');
+      const confirmLabel = document.getElementById('confirmButtonLabel');
+
+      if (type === 'ADD_STAMP') {
+        qtySection.classList.remove('hidden');
+        document.getElementById('quantityLabel').textContent = `عدد أختام الـ (${itemLabel}) المراد إضافتها:`;
+        confirmLabel.textContent = `تأكيد إضافة (+${selectedDelta}) أختام وتحديث Wallet`;
+      } else if (type === 'REDEEM_REWARD') {
+        qtySection.classList.add('hidden');
+        confirmLabel.textContent = `تأكيد استبدال الـ (${itemLabel}) وتصفير العداد`;
+      } else if (type === 'SET_COUNT') {
+        qtySection.classList.remove('hidden');
+        document.getElementById('quantityLabel').textContent = `الرصيد المراد ضبطه مباشرة:`;
+        confirmLabel.textContent = `تأكيد ضبط رصيد الـ (${itemLabel}) إلى (${selectedDelta})`;
+      } else if (type === 'RESET') {
+        qtySection.classList.add('hidden');
+        confirmLabel.textContent = `تأكيد تصفير رصيد الـ (${itemLabel}) إلى 0`;
+      }
+    }
+
+    function setDelta(val) {
+      selectedDelta = Number(val);
+      document.getElementById('customDeltaInput').value = val;
+      document.querySelectorAll('.delta-quick-btn').forEach(b => {
+        b.classList.remove('bg-gold-500', 'text-coffee-950');
+        b.classList.add('bg-coffee-700', 'text-white');
+      });
+      const btn = document.querySelector(`.delta-quick-btn[data-val="${val}"]`);
+      if (btn) {
+        btn.classList.add('bg-gold-500', 'text-coffee-950');
+        btn.classList.remove('bg-coffee-700', 'text-white');
+      }
+      selectActionType(selectedActionType);
+    }
+
+    function onCustomDeltaChange(val) {
+      const maxStamps = (activeProgram === 'BAKERY') ? currentSettings.bakeryMaxStamps : currentSettings.drinksMaxStamps;
+      selectedDelta = Math.max(1, Math.min(maxStamps, Number(val) || 1));
+      selectActionType(selectedActionType);
+    }
+
+    // Modal Confirmation before executing
+    function requestOperationConfirmation() {
+      if (!activeCustomer) {
+        showToast('يرجى اختيار أو البحث عن زبون أولاً', 'error');
+        return;
+      }
+
+      const isBakery = (activeProgram === 'BAKERY');
+      const maxStamps = isBakery ? currentSettings.bakeryMaxStamps : currentSettings.drinksMaxStamps;
+      const prev = isBakery ? Number(activeCustomer.bakery_stamps || 0) : Number(activeCustomer.drinks_stamps ?? activeCustomer.stamps_count ?? 0);
+      const icon = isBakery ? '🥐' : '☕';
+      const itemLabel = isBakery ? 'مخبوزات' : 'مشروبات';
+      
+      let next = prev;
+      let title = `تأكيد العملية (${itemLabel} ${icon})`;
+      let desc = '';
+
+      if (selectedActionType === 'ADD_STAMP') {
+        next = Math.min(maxStamps, prev + selectedDelta);
+        title = `تأكيد إضافة أختام (+${selectedDelta} ${icon})`;
+        desc = `هل تريد إضافة <strong>${selectedDelta}</strong> ختم على كارت الـ <strong>${itemLabel}</strong> للزبون <strong>${activeCustomer.full_name}</strong>؟`;
+      } else if (selectedActionType === 'REDEEM_REWARD') {
+        next = 0;
+        title = `تأكيد استبدال مكافأة مجانية ${icon}`;
+        desc = `سيتم استبدال الـ ${itemLabel} المجاني للزبون <strong>${activeCustomer.full_name}</strong> وتصفير العداد إلى 0.`;
+      } else if (selectedActionType === 'SET_COUNT') {
+        next = selectedDelta;
+        title = `تأكيد ضبط الرصيد`;
+        desc = `هل تريد ضبط رصيد الزبون <strong>${activeCustomer.full_name}</strong> إلى <strong>${selectedDelta}</strong> أختام؟`;
+      } else if (selectedActionType === 'RESET') {
+        next = 0;
+        title = `تأكيد تصفير الرصيد`;
+        desc = `سيتم تصفير رصيد كارت الـ ${itemLabel} للزبون <strong>${activeCustomer.full_name}</strong>.`;
+      }
+
+      document.getElementById('confirmModalTitle').innerHTML = title;
+      document.getElementById('confirmModalDesc').innerHTML = desc;
+      document.getElementById('confirmModalPrevStamps').textContent = `${prev} / ${maxStamps}`;
+      document.getElementById('confirmModalNewStamps').textContent = `${next} / ${maxStamps} ${icon}`;
+      document.getElementById('confirmModalIcon').className = `fa-solid ${isBakery ? 'fa-croissant' : 'fa-mug-hot'}`;
+
+      document.getElementById('confirmationModal').classList.remove('hidden');
+    }
+
+    function closeConfirmationModal() {
+      document.getElementById('confirmationModal').classList.add('hidden');
+    }
+
+    // Execute Confirmed Operation
+    async function executeConfirmedOperation() {
+      const execBtn = document.getElementById('confirmExecuteBtn');
+      const originalText = execBtn.innerHTML;
+      execBtn.disabled = true;
+      execBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> جاري تحديث Google Wallet...`;
+
+      try {
+        const payload = {
+          customer_id: activeCustomer.customer_id,
+          action_type: selectedActionType,
+          program_type: activeProgram,
+          delta: selectedDelta,
+          cashier_name: document.getElementById('cashierNameInput').value || 'كاشير Roma',
+          notes: document.getElementById('operationNotesInput').value || ''
+        };
+
+        const res = await fetch('/api/add-stamp', {
+          method: 'POST',
+          headers: getAdminAuthHeaders(),
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        closeConfirmationModal();
+
+        if (data.success && data.customer) {
+          renderActiveCustomer(data.customer);
+          showToast(data.message, 'success');
+          loadAllCustomers();
+          loadRecentTransactions();
+        } else {
+          showToast(data.error || 'حدث خطأ أثناء تنفيذ العملية', 'error');
+        }
+      } catch (err) {
+        closeConfirmationModal();
+        showToast('فشل الاتصال: ' + err.message, 'error');
+      } finally {
+        execBtn.disabled = false;
+        execBtn.innerHTML = originalText;
+      }
+    }
+
+    // Helper: Extract Clean Customer ID or Phone from any text / verify URL
+    function extractCustomerIdOrPhone(text) {
+      if (!text) return '';
+      let clean = text.trim();
+
+      // Check if it's a verify URL containing cid=
+      if (clean.includes('cid=')) {
+        const match = clean.match(/cid=([^&/#?]+)/);
+        if (match) return match[1];
+      }
+
+      // Check if it has Wallet Object ID prefix
+      const prefixDrinks = `3388000000023239265.CUSTOMER_DRINKS_`;
+      const prefixBakery = `3388000000023239265.CUSTOMER_BAKERY_`;
+      const prefixOld = `3388000000023239265.CUSTOMER_`;
+      if (clean.includes(prefixDrinks)) clean = clean.replace(prefixDrinks, '');
+      else if (clean.includes(prefixBakery)) clean = clean.replace(prefixBakery, '');
+      else if (clean.includes(prefixOld)) clean = clean.replace(prefixOld, '');
+
+      return clean.trim();
+    }
+
+    // Customer Search (Supports full QR URL, short URL, UUID, phone number, or name)
+    async function searchCustomer(overrideQuery) {
+      const raw = overrideQuery || document.getElementById('cashierSearchInput').value;
+      const q = raw ? raw.trim() : '';
+      if (!q) {
+        showToast('يرجى إدخال اسم أو هاتف أو كود الزبون', 'warning');
+        return;
+      }
+
+      const cleanTarget = extractCustomerIdOrPhone(q);
+
+      try {
+        const res = await fetch('/api/customers');
+        const data = await res.json();
+        const customers = data.customers || [];
+
+        // Comprehensive match across ID, Phone, Name, or Wallet Object ID
+        const found = customers.find(c => {
+          if (!c) return false;
+          const cid = c.customer_id || '';
+          const phone = c.phone_number || '';
+          const name = (c.full_name || '').toLowerCase();
+          const walletId = c.wallet_object_id || '';
+
+          // 1. Exact or partial Match with extracted CID
+          if (cleanTarget && (cid === cleanTarget || cid.includes(cleanTarget) || cleanTarget.includes(cid))) {
+            return true;
+          }
+          // 2. URL contains customer ID
+          if (q.includes(cid)) {
+            return true;
+          }
+          // 3. Phone match
+          if (phone && (phone.includes(q) || q.includes(phone) || phone.includes(cleanTarget))) {
+            return true;
+          }
+          // 4. Name match
+          if (name && name.includes(q.toLowerCase())) {
+            return true;
+          }
+          // 5. Wallet object id match
+          if (walletId && cleanTarget && walletId.includes(cleanTarget)) {
+            return true;
+          }
+          return false;
+        });
+
+        if (found) {
+          renderActiveCustomer(found);
+          showToast(`تم العثور على: ${found.full_name} ☕`, 'success');
+        } else {
+          showToast(`لم يتم العثور على زبون مطابق للكود: "${cleanTarget.substring(0, 15)}..."`, 'error');
+        }
+      } catch (err) {
+        showToast('خطأ أثناء البحث: ' + err.message, 'error');
+      }
+    }
+
+    document.getElementById('cashierSearchInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') searchCustomer();
+    });
+
+    // Native Mobile Camera Shutter Handler (100% reliable on every phone over HTTP)
+    function openMobileCamera() {
+      const input = document.getElementById('mobileCameraInput');
+      if (input) {
+        input.value = '';
+        input.click();
+      }
+    }
+
+    // High Performance QR Decoder with Canvas Downsampling & Multi-Angle Rotation
+    async function decodeQrFromImage(file) {
+      // Step 1: Load file into an image
+      const img = await new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = (e) => reject(new Error('فشل تحميل ملف الصورة'));
+        image.src = URL.createObjectURL(file);
+      });
+
+      // Step 2: Scale down to optimal dimension (max 1000px)
+      // This prevents high-res phone camera images (12MP-48MP) from overflowing canvas memory
+      const maxDim = 1000;
+      let w = img.width;
+      let h = img.height;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) {
+          h = Math.round((h * maxDim) / w);
+          w = maxDim;
+        } else {
+          w = Math.round((w * maxDim) / h);
+          h = maxDim;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0, w, h);
+
+      // Step 3: Try Engine 1 (jsQR) - Instant pure JS decoder
+      if (typeof jsQR !== 'undefined') {
+        const imgData = ctx.getImageData(0, 0, w, h);
+        let res = jsQR(imgData.data, w, h, { inversionAttempts: "dontInvert" });
+        if (res && res.data) return res.data;
+
+        res = jsQR(imgData.data, w, h, { inversionAttempts: "attemptBoth" });
+        if (res && res.data) return res.data;
+
+        // Try 90, 180, 270 degree rotations in case phone photo orientation was sideways
+        for (let rot = 1; rot <= 3; rot++) {
+          const rotCanvas = document.createElement('canvas');
+          rotCanvas.width = (rot % 2 === 1) ? h : w;
+          rotCanvas.height = (rot % 2 === 1) ? w : h;
+          const rotCtx = rotCanvas.getContext('2d');
+          rotCtx.translate(rotCanvas.width / 2, rotCanvas.height / 2);
+          rotCtx.rotate((rot * 90 * Math.PI) / 180);
+          rotCtx.drawImage(canvas, -w / 2, -h / 2);
+
+          const rotData = rotCtx.getImageData(0, 0, rotCanvas.width, rotCanvas.height);
+          const rotRes = jsQR(rotData.data, rotCanvas.width, rotCanvas.height, { inversionAttempts: "dontInvert" });
+          if (rotRes && rotRes.data) return rotRes.data;
+        }
+      }
+
+      // Step 4: Try Engine 2 (Html5Qrcode on the downscaled clean JPEG blob)
+      if (html5QrCodeScanner) {
+        const resizedBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.88));
+        if (resizedBlob) {
+          const resizedFile = new File([resizedBlob], "scan.jpg", { type: "image/jpeg" });
+          const text = await html5QrCodeScanner.scanFile(resizedFile, false);
+          if (text) return text;
+        }
+      }
+
+      throw new Error('لم يتم العثور على رمز QR واضح');
+    }
+
+    async function handleMobileCameraCapture(e) {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      showToast('جاري قراءة كود الـ QR بدقة عالية 🔍...', 'info');
+
+      if (!html5QrCodeScanner) {
+        html5QrCodeScanner = new Html5Qrcode("qrReader");
+      }
+
+      try {
+        const decodedText = await decodeQrFromImage(file);
+        document.getElementById('cashierSearchInput').value = decodedText;
+        showToast('تم مسح كود الزبون بنجاح! ✓', 'success');
+
+        if (decodedText.includes('type=BAKERY')) {
+          switchCashierProgram('BAKERY');
+        } else if (decodedText.includes('type=DRINKS')) {
+          switchCashierProgram('DRINKS');
+        }
+        searchCustomer(decodedText);
+      } catch (err) {
+        console.warn('QR decode error:', err);
+        showToast('تعذر التعرف على كود QR من الصورة. يرجى التأكد من وضوح الكود أو البحث برقم الهاتف.', 'warning');
+      }
+    }
+
+    // Camera Scanner (Live Video Stream with auto-fallback to Mobile Camera Shutter)
+    function toggleCameraScanner() {
+      const container = document.getElementById('cameraScannerContainer');
+      if (container.classList.contains('hidden')) {
+        startCameraScanner();
+      } else {
+        stopCameraScanner();
+      }
+    }
+
+    function startCameraScanner() {
+      // Check if browser allows getUserMedia (requires HTTPS or localhost on modern mobile browsers)
+      const hasMediaDevices = navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+      const isSecure = window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+      if (!hasMediaDevices || !isSecure) {
+        showToast('يتم فتح كاميرا الهاتف مباشرة للمسح السريع 📸...', 'info');
+        openMobileCamera();
+        return;
+      }
+
+      document.getElementById('cameraScannerContainer').classList.remove('hidden');
+      document.getElementById('scannerBtnText').textContent = 'إيقاف';
+
+      if (!html5QrCodeScanner) {
+        html5QrCodeScanner = new Html5Qrcode("qrReader");
+      }
+
+      html5QrCodeScanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
+          stopCameraScanner();
+          document.getElementById('cashierSearchInput').value = decodedText;
+          showToast('تم مسح الرمز بنجاح! جاري جلب بيانات الكارت...', 'success');
+          
+          if (decodedText.includes('type=BAKERY')) {
+            switchCashierProgram('BAKERY');
+          } else if (decodedText.includes('type=DRINKS')) {
+            switchCashierProgram('DRINKS');
+          }
+          searchCustomer();
+        },
+        () => {}
+      ).catch(err => {
+        console.warn('Live scanner failed, falling back to mobile camera snapshot:', err);
+        stopCameraScanner();
+        openMobileCamera();
+      });
+    }
+
+    function stopCameraScanner() {
+      if (html5QrCodeScanner) {
+        html5QrCodeScanner.stop().catch(() => {});
+      }
+      document.getElementById('cameraScannerContainer').classList.add('hidden');
+      document.getElementById('scannerBtnText').textContent = 'بث مباشر';
+    }
+
+    // Instant 1-Tap Quick Actions for Cashier (Zero confirmation popup delays)
+    async function executeQuickAdd(programType, delta = 1) {
+      if (!activeCustomer) {
+        showToast('يرجى اختيار أو مسح كود الزبون أولاً من شاشة الكاشير', 'warning');
+        return;
+      }
+
+      const itemIcon = (programType === 'BAKERY') ? '🥐' : '☕';
+      const itemLabel = (programType === 'BAKERY') ? 'المخبوزات' : 'المشروبات';
+      showToast(`جاري إضافة ختم ${itemLabel} ${itemIcon} وتحديث محفظة الزبون...`, 'info');
+
+      try {
+        const payload = {
+          customer_id: activeCustomer.customer_id,
+          action_type: 'ADD_STAMP',
+          program_type: programType,
+          delta: delta,
+          cashier_name: document.getElementById('cashierNameInput')?.value || 'كاشير Roma',
+          notes: `إضافة سريعة بالهاتف (+${delta} ${itemIcon})`
+        };
+
+        const res = await fetch('/api/add-stamp', {
+          method: 'POST',
+          headers: getAdminAuthHeaders(),
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (data.success && data.customer) {
+          switchCashierProgram(programType);
+          renderActiveCustomer(data.customer);
+          showToast(data.message, 'success');
+          loadAllCustomers();
+          loadRecentTransactions();
+        } else {
+          showToast(data.error || 'حدث خطأ أثناء إضافة الختم', 'error');
+        }
+      } catch (err) {
+        showToast('فشل الاتصال بالخادم: ' + err.message, 'error');
+      }
+    }
+
+    async function executeQuickRedeem(programType) {
+      if (!activeCustomer) {
+        showToast('يرجى اختيار الزبون أولاً', 'warning');
+        return;
+      }
+
+      const isBakery = (programType === 'BAKERY');
+      const itemLabel = isBakery ? 'المخبوز أو الحلى' : 'المشروب';
+      const itemIcon = isBakery ? '🥐' : '☕';
+
+      if (!confirm(`هل أنت متأكد من تسليم الـ ${itemLabel} المجاني (${itemIcon}) للزبون ${activeCustomer.full_name} وتصفير العداد؟`)) {
+        return;
+      }
+
+      showToast(`جاري استبدال المكافأة المجانية ${itemIcon}...`, 'info');
+
+      try {
+        const payload = {
+          customer_id: activeCustomer.customer_id,
+          action_type: 'REDEEM_REWARD',
+          program_type: programType,
+          delta: 0,
+          cashier_name: document.getElementById('cashierNameInput')?.value || 'كاشير Roma',
+          notes: `استبدال مكافأة مجانية (${itemLabel})`
+        };
+
+        const res = await fetch('/api/add-stamp', {
+          method: 'POST',
+          headers: getAdminAuthHeaders(),
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (data.success && data.customer) {
+          switchCashierProgram(programType);
+          renderActiveCustomer(data.customer);
+          showToast(data.message, 'success');
+          loadAllCustomers();
+          loadRecentTransactions();
+        } else {
+          showToast(data.error || 'فشل استبدال المكافأة', 'error');
+        }
+      } catch (err) {
+        showToast('فشل الاتصال: ' + err.message, 'error');
+      }
+    }
+
+    // Manual Customer Creation
+    async function handleCreateCustomer(e) {
+      e.preventDefault();
+      const btn = document.getElementById('createCustSubmitBtn');
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> جاري حفظ الزبون وتوقيع الكروت...`;
+
+      const fullName = document.getElementById('newCustFullName').value;
+      const phone = document.getElementById('newCustPhone').value;
+
+      try {
+        const res = await fetch('/api/create-wallet-pass', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ full_name: fullName, phone_number: phone })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          document.getElementById('newCustomerResultCard').classList.remove('hidden');
+          if (data.both && (data.both.short_save_url || data.both.save_url)) {
+            document.getElementById('newCustBothLink').href = data.both.short_save_url || data.both.save_url;
+          }
+          document.getElementById('newCustDrinksLink').href = data.drinks.save_url;
+          document.getElementById('newCustBakeryLink').href = data.bakery.save_url;
+
+          const msg = data.message || (data.is_existing 
+            ? `تم فتح حساب الزبون الحالي (${data.customer.full_name}) بنجاح!` 
+            : 'تم تسجيل الزبون وإصدار بطاقات المشروبات والمخبوزات بنجاح!');
+          
+          document.getElementById('newCustSuccessMsg').textContent = msg;
+          showToast(msg, 'success');
+          renderActiveCustomer(data.customer);
+          loadAllCustomers();
+        } else {
+          showToast(data.error || 'فشل توليد البطاقات', 'error');
+        }
+      } catch (err) {
+        showToast('خطأ: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-bolt"></i> <span>توليد كروت Google Wallet فوراً</span>`;
+      }
+    }
+
+    // WhatsApp Share
+    function shareViaWhatsApp() {
+      if (!activeCustomer) {
+        showToast('لا يوجد زبون مفعّل حالياً', 'warning');
+        return;
+      }
+      const isBakery = (activeProgram === 'BAKERY');
+      let link = activeCustomer.google_wallet_save_url || '';
+      try {
+        if (activeCustomer.notes && activeCustomer.notes.startsWith('{')) {
+          const meta = JSON.parse(activeCustomer.notes);
+          if (isBakery && meta.bakery_save_url) link = meta.bakery_save_url;
+          else if (!isBakery && meta.drinks_save_url) link = meta.drinks_save_url;
+        }
+      } catch (e) {}
+
+      const phone = activeCustomer.phone_number.replace(/\D/g, '');
+      const msg = encodeURIComponent(`أهلاً بك يا ${activeCustomer.full_name} في مقهى Roma Cafe ☕!\n\nرابط إضافة بطاقة الولاء الرقمية الخاصة بك (${isBakery ? 'المخبوزات 🥐' : 'المشروبات ☕'}) إلى Google Wallet:\n${link}\n\nاجمع أختامك واستمتع بمكافأتك المجانية!`);
+      window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+    }
+
+    function shareNewCustWhatsApp() {
+      shareViaWhatsApp();
+    }
+
+    function copyPassLink() {
+      let passUrl = activeCustomer ? (activeCustomer.google_wallet_save_url || '') : '';
+      if (!passUrl) return;
+      navigator.clipboard.writeText(passUrl);
+      const btnText = document.getElementById('copyLinkBtnText');
+      btnText.textContent = 'تم النسخ بنجاح! ✓';
+      setTimeout(() => btnText.textContent = 'نسخ الرابط المباشر', 2500);
+      showToast('تم نسخ رابط Google Wallet إلى الحافظة', 'success');
+    }
+
+    // QR Code Modal
+    function showCustomerQrModal() {
+      if (!activeCustomer) return;
+      const verifyUrl = `${window.location.origin}/verify?cid=${activeCustomer.customer_id}&type=${activeProgram}`;
+      document.getElementById('modalQrImage').src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=5&data=${encodeURIComponent(verifyUrl)}`;
+      document.getElementById('modalQrCaption').textContent = `${activeCustomer.full_name} (${activeProgram})`;
+      document.getElementById('customerQrModal').classList.remove('hidden');
+    }
+
+    function closeCustomerQrModal() {
+      document.getElementById('customerQrModal').classList.add('hidden');
+    }
+
+    // Load All Customers
+    async function loadAllCustomers() {
+      try {
+        const res = await fetch('/api/customers');
+        const data = await res.json();
+        allCustomersList = data.customers || [];
+        renderCustomerTableRows(allCustomersList);
+
+        if (!activeCustomer && allCustomersList.length > 0) {
+          renderActiveCustomer(allCustomersList[0]);
+        }
+      } catch (err) {
+        console.error("Error loading customers:", err);
+      }
+    }
+
+    function renderCustomerTableRows(list) {
+      const tbody = document.getElementById('customersTableBody');
+      const mobileContainer = document.getElementById('customersMobileCardsList');
+      tbody.innerHTML = '';
+      if (mobileContainer) mobileContainer.innerHTML = '';
+
+      if (!list || list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-coffee-400 font-bold">لا يوجد زبائن مسجلين حالياً (قاعدة البيانات نظيفة تماماً).</td></tr>`;
+        if (mobileContainer) {
+          mobileContainer.innerHTML = `<div class="p-4 bg-coffee-800 rounded-2xl border border-coffee-700 text-center text-xs text-coffee-400 font-bold">لا يوجد زبائن مسجلين حالياً.</div>`;
+        }
+        return;
+      }
+
+      list.forEach(c => {
+        const dStamps = c.drinks_stamps ?? c.stamps_count ?? 0;
+        const bStamps = c.bakery_stamps ?? 0;
+
+        // 1. Desktop Table Row
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-coffee-700/40 transition cursor-pointer';
+        tr.onclick = (e) => {
+          if (!e.target.closest('button')) {
+            renderActiveCustomer(c);
+            switchTab('cashier');
+          }
+        };
+
+        tr.innerHTML = `
+          <td class="p-3.5 font-bold text-white flex items-center gap-2">
+            <div class="w-7 h-7 rounded-full bg-coffee-700 flex items-center justify-center text-xs text-gold-400">
+              <i class="fa-solid fa-mug-hot"></i>
+            </div>
+            <span>${c.full_name}</span>
+          </td>
+          <td class="p-3.5 text-coffee-300 font-mono">${c.phone_number}</td>
+          <td class="p-3.5">
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black bg-gold-500/20 text-gold-400">
+              ${dStamps} / ${currentSettings.drinksMaxStamps} ☕
+            </span>
+          </td>
+          <td class="p-3.5">
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black bg-amber-500/20 text-amber-300">
+              ${bStamps} / ${currentSettings.bakeryMaxStamps} 🥐
+            </span>
+          </td>
+          <td class="p-3.5 text-coffee-300 font-bold">${c.total_stamps_earned || (dStamps + bStamps)}</td>
+          <td class="p-3.5 text-emerald-400 font-bold">${c.free_coffees_claimed || 0}</td>
+          <td class="p-3.5 text-center">
+            <button onclick="pickCustomerById('${c.customer_id}')" 
+              class="px-3 py-1.5 rounded-lg bg-gold-500/20 hover:bg-gold-500 text-gold-400 hover:text-coffee-950 font-bold text-xs transition">
+              فتح في الكاشير
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+
+        // 2. Mobile Responsive Touch Card
+        if (mobileContainer) {
+          const mCard = document.createElement('div');
+          mCard.className = 'bg-coffee-800/90 p-4 rounded-2xl border border-coffee-700/80 space-y-3 shadow-md';
+          mCard.innerHTML = `
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-gold-500/20 text-gold-400 border border-gold-500/30 flex items-center justify-center font-bold">
+                  <i class="fa-solid fa-user"></i>
+                </div>
+                <div>
+                  <h4 class="text-sm font-bold text-white">${c.full_name}</h4>
+                  <span class="text-xs text-coffee-300 font-mono">${c.phone_number}</span>
+                </div>
+              </div>
+              <span class="text-[10px] bg-coffee-950 text-gold-400 px-2 py-0.5 rounded-full border border-coffee-700 font-mono">
+                ${c.customer_id.substring(0, 8)}...
+              </span>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-2 text-center text-xs">
+              <div class="p-2 rounded-xl bg-coffee-950/70 border border-coffee-700/60">
+                <span class="text-[10px] text-coffee-400 block mb-0.5">المشروبات ☕</span>
+                <span class="font-black text-gold-400 text-sm font-mono">${dStamps} / ${currentSettings.drinksMaxStamps}</span>
+              </div>
+              <div class="p-2 rounded-xl bg-coffee-950/70 border border-coffee-700/60">
+                <span class="text-[10px] text-coffee-400 block mb-0.5">المخبوزات 🥐</span>
+                <span class="font-black text-amber-300 text-sm font-mono">${bStamps} / ${currentSettings.bakeryMaxStamps}</span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 pt-1">
+              <button onclick="pickCustomerById('${c.customer_id}')" class="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-gold-500 to-amber-500 active:scale-95 text-coffee-950 font-black text-xs flex items-center justify-center gap-1.5 shadow">
+                <i class="fa-solid fa-stamp"></i>
+                <span>اختيار للكاشير ⚡</span>
+              </button>
+              <button onclick="shareCustomerWhatsApp('${c.customer_id}')" class="py-2.5 px-3.5 rounded-xl bg-emerald-700 active:scale-95 text-white font-bold text-xs flex items-center justify-center gap-1 shadow">
+                <i class="fa-brands fa-whatsapp text-sm"></i>
+              </button>
+            </div>
+          `;
+          mobileContainer.appendChild(mCard);
+        }
+      });
+    }
+
+    function pickCustomerById(cid) {
+      const c = allCustomersList.find(x => x.customer_id === cid);
+      if (c) {
+        renderActiveCustomer(c);
+        switchTab('cashier');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        showToast(`تم فتح حساب: ${c.full_name} في الكاشير ☕`, 'success');
+      }
+    }
+
+    function shareCustomerWhatsApp(cid) {
+      const c = allCustomersList.find(x => x.customer_id === cid);
+      if (!c) return;
+      const isBakery = (activeProgram === 'BAKERY');
+      let link = c.google_wallet_save_url || '';
+      try {
+        if (c.notes && c.notes.startsWith('{')) {
+          const meta = JSON.parse(c.notes);
+          if (isBakery && meta.bakery_save_url) link = meta.bakery_save_url;
+          else if (!isBakery && meta.drinks_save_url) link = meta.drinks_save_url;
+        }
+      } catch (e) {}
+
+      const phone = c.phone_number.replace(/\D/g, '');
+      const msg = encodeURIComponent(`أهلاً بك يا ${c.full_name} في مقهى Roma Cafe ☕!\n\nرابط بطاقة الولاء الرقمية الخاصة بك في Google Wallet:\n${link}\n\nاجمع أختامك واستمتع بمكافأتك المجانية!`);
+      window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+    }
+
+    function filterCustomerTable(query) {
+      const q = query.trim().toLowerCase();
+      if (!q) {
+        renderCustomerTableRows(allCustomersList);
+        return;
+      }
+      const filtered = allCustomersList.filter(c => 
+        (c.full_name && c.full_name.toLowerCase().includes(q)) ||
+        (c.phone_number && c.phone_number.includes(q))
+      );
+      renderCustomerTableRows(filtered);
+    }
+
+    // Export Customers to CSV (Excel with Arabic UTF-8 BOM support)
+    function exportCustomersToCSV() {
+      if (!allCustomersList || allCustomersList.length === 0) {
+        showToast('لا توجد بيانات زبائن لتصديرها حالياً', 'warning');
+        return;
+      }
+
+      let csvContent = "\uFEFF"; // UTF-8 BOM for Arabic in Excel
+      csvContent += "اسم الزبون,رقم الهاتف,أختام المشروبات (☕),أختام المخبوزات (🥐),إجمالي الأختام المكتسبة,المكافآت المجانية المستلمة,تاريخ التسجيل\n";
+
+      allCustomersList.forEach(c => {
+        const name = `"${(c.full_name || '').replace(/"/g, '""')}"`;
+        const phone = `"${c.phone_number || ''}"`;
+        const dStamps = c.drinks_stamps ?? c.stamps_count ?? 0;
+        const bStamps = c.bakery_stamps ?? 0;
+        const total = c.total_stamps_earned || (dStamps + bStamps);
+        const free = c.free_coffees_claimed || 0;
+        const date = `"${new Date(c.created_at).toLocaleDateString('ar-EG')}"`;
+
+        csvContent += `${name},${phone},${dStamps},${bStamps},${total},${free},${date}\n`;
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `Roma_Cafe_Customers_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('تم تصدير ملف الإكسل (CSV) بنجاح!', 'success');
+    }
+
+    // Load Recent Transactions
+    async function loadRecentTransactions() {
+      try {
+        const res = await fetch('/api/transactions');
+        const data = await res.json();
+        
+        const tbody = document.getElementById('transactionsTableBody');
+        tbody.innerHTML = '';
+
+        const cashierList = document.getElementById('cashierRecentTransactions');
+        cashierList.innerHTML = '';
+
+        if (!data.transactions || data.transactions.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-coffee-400">لا توجد حركات مسجلة حالياً.</td></tr>`;
+          cashierList.innerHTML = `<p class="text-xs text-coffee-400 p-2">لا توجد حركات بعد، أضف ختماً لتظهر هنا فوراً.</p>`;
+          return;
+        }
+
+        data.transactions.forEach(t => {
+          const tr = document.createElement('tr');
+          const time = new Date(t.created_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+          const isBakery = (t.category === 'BAKERY');
+          const actionBadge = t.action_type === 'REDEEM_REWARD' 
+            ? `<span class="text-emerald-400 font-bold">استبدال ${isBakery ? 'مخبوز 🥐' : 'مشروب ☕'}</span>`
+            : `<span class="text-gold-400 font-bold">إضافة ختم</span>`;
+
+          tr.innerHTML = `
+            <td class="p-3 text-coffee-400 font-mono">${time}</td>
+            <td class="p-3 text-white font-bold">${t.customer_name || 'زبون'}</td>
+            <td class="p-3 font-bold ${isBakery ? 'text-amber-400' : 'text-gold-400'}">${isBakery ? 'مخبوزات 🥐' : 'مشروبات ☕'}</td>
+            <td class="p-3">${actionBadge}</td>
+            <td class="p-3 font-mono font-bold ${t.stamps_delta >= 0 ? 'text-emerald-400' : 'text-red-400'}">${t.stamps_delta > 0 ? '+' : ''}${t.stamps_delta}</td>
+            <td class="p-3 font-mono text-gold-400 font-bold">${t.new_count}</td>
+            <td class="p-3 text-coffee-300">${t.cashier_name}</td>
+            <td class="p-3">
+              <span class="text-[11px] px-2 py-0.5 rounded-full ${t.google_wallet_synced ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-300'}">
+                ${t.google_wallet_synced ? 'تمت المزامنة ✓' : 'في الانتظار'}
+              </span>
+            </td>
+          `;
+          tbody.appendChild(tr);
+
+          const item = document.createElement('div');
+          item.className = 'p-2.5 rounded-xl bg-coffee-900/60 border border-coffee-700/60 flex items-center justify-between text-xs';
+          item.innerHTML = `
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full ${t.action_type === 'REDEEM_REWARD' ? 'bg-emerald-400' : (isBakery ? 'bg-amber-400' : 'bg-gold-500')}"></span>
+              <span class="text-white font-bold">${t.customer_name || 'زبون'}:</span>
+              <span class="text-coffee-300">${t.action_type === 'REDEEM_REWARD' ? 'استلم مكافأة مجانية' : `أضاف (${t.stamps_delta}) ختم ${isBakery ? '🥐' : '☕'}`}</span>
+            </div>
+            <div class="flex items-center gap-2 font-mono">
+              <span class="text-gold-400 font-bold">${t.new_count} ${isBakery ? '🥐' : '☕'}</span>
+              <span class="text-coffee-400 text-[10px]">${time}</span>
+            </div>
+          `;
+          cashierList.appendChild(item);
+        });
+      } catch (err) {
+        console.error("Error loading transactions:", err);
+      }
+    }
+
+    // Push Notifications Logic
+    function toggleNotifyTarget(val) {
+      const box = document.getElementById('singleTargetInfo');
+      if (val === 'SINGLE') {
+        box.classList.remove('hidden');
+        if (activeCustomer) {
+          document.getElementById('notifySelectedCustName').textContent = `${activeCustomer.full_name} (${activeCustomer.phone_number})`;
+        } else {
+          document.getElementById('notifySelectedCustName').textContent = 'يرجى اختيار زبون من شاشة الكاشير أولاً';
+        }
+      } else {
+        box.classList.add('hidden');
+      }
+    }
+
+    function applyPushTemplate(key) {
+      const headerInput = document.getElementById('notifyHeaderInput');
+      const bodyInput = document.getElementById('notifyBodyInput');
+
+      if (key === 'WEEKEND_OFFER') {
+        headerInput.value = 'عرض نهاية الأسبوع في Roma Cafe ☕';
+        bodyInput.value = 'استمتع بعطلة نهاية أسبوع مميزة! اشترِ كوبين من قهوتك المفضلة واحصل على الثالث مجاناً اليوم فقط.';
+        document.getElementById('notifyProgramType').value = 'DRINKS';
+      } else if (key === 'STAMP_REMINDER') {
+        headerInput.value = 'قهوتك المفضلة بانتظارك ☕';
+        bodyInput.value = 'لقد اقتربت من استكمال أختامك! زرنا اليوم في Roma Cafe واجمع ختمك التالي للحصول على مشروبك المجاني.';
+        document.getElementById('notifyProgramType').value = 'DRINKS';
+      } else if (key === 'NEW_BAKERY') {
+        headerInput.value = 'طازج وساخن: كرواسون وحلويات Roma 🥐';
+        bodyInput.value = 'تشكيلة المخبوزات والكرواسون الفرنسية الطازجة جاهزة الآن، اجمع ختمك واحصل على خصم 20%! ';
+        document.getElementById('notifyProgramType').value = 'BAKERY';
+      }
+      showToast('تم تطبيق قالب التنبيه بنجاح', 'info');
+    }
+
+    async function handleSendPushNotification(e) {
+      e.preventDefault();
+      const targetVal = document.querySelector('input[name="notifyTarget"]:checked').value;
+
+      if (targetVal === 'SINGLE' && !activeCustomer) {
+        showToast('يرجى اختيار زبون أولاً من شاشة الكاشير للإرسال الفردي', 'warning');
+        return;
+      }
+
+      const header = document.getElementById('notifyHeaderInput').value.trim();
+      const body = document.getElementById('notifyBodyInput').value.trim();
+      const progType = document.getElementById('notifyProgramType').value;
+
+      const btn = document.getElementById('sendPushSubmitBtn');
+      const origText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-lg"></i> <span>جاري إرسال التنبيه لهواتف Google Wallet...</span>`;
+
+      try {
+        const payload = {
+          header,
+          body,
+          target: targetVal,
+          program_type: progType,
+          customer_id: activeCustomer ? activeCustomer.customer_id : null
+        };
+
+        const res = await fetch('/api/notifications/send', {
+          method: 'POST',
+          headers: getAdminAuthHeaders(),
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          showToast(data.message, 'success');
+          document.getElementById('pushNotificationForm').reset();
+          loadRecentTransactions();
+        } else {
+          showToast(data.error || 'فشل إرسال التنبيه', 'error');
+        }
+      } catch (err) {
+        showToast('خطأ أثناء الإرسال: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = origText;
+      }
+    }
+
+    // Google Maps Link Parser
+    function parseGmapsInput() {
+      const raw = document.getElementById('gmapsUrlParserInput').value.trim();
+      if (!raw) {
+        showToast('يرجى لصق رابط Google Maps أو كتابة الإحداثيات', 'warning');
+        return;
+      }
+
+      // 1. Matches simple lat,lng like "32.2211, 35.2544" or "32.2211,35.2544"
+      const simpleMatch = raw.match(/^(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)$/);
+      if (simpleMatch) {
+        document.getElementById('settingCafeLatitude').value = simpleMatch[1];
+        document.getElementById('settingCafeLongitude').value = simpleMatch[2];
+        showToast(`تم استخراج الإحداثيات بنجاح: ${simpleMatch[1]}, ${simpleMatch[2]}`, 'success');
+        return;
+      }
+
+      // 2. Matches "@lat,lng" in google maps url
+      const atMatch = raw.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+      if (atMatch) {
+        document.getElementById('settingCafeLatitude').value = atMatch[1];
+        document.getElementById('settingCafeLongitude').value = atMatch[2];
+        showToast(`تم استخراج الإحداثيات من رابط الخريطة: ${atMatch[1]}, ${atMatch[2]}`, 'success');
+        return;
+      }
+
+      // 3. Matches ?q=lat,lng or ll=lat,lng
+      const qMatch = raw.match(/[?&](?:q|ll)=(-?\d+\.\d+),(-?\d+\.\d+)/);
+      if (qMatch) {
+        document.getElementById('settingCafeLatitude').value = qMatch[1];
+        document.getElementById('settingCafeLongitude').value = qMatch[2];
+        showToast(`تم استخراج الإحداثيات: ${qMatch[1]}, ${qMatch[2]}`, 'success');
+        return;
+      }
+
+      showToast('تعذر استخراج الإحداثيات تلقائياً. يرجى إدخالها مباشرة في حقول خط العرض والطول.', 'warning');
+    }
+
+    // GPS Geolocation Detector
+    function detectCurrentLocation() {
+      if (!navigator.geolocation) {
+        showToast('متصفحك لا يدعم خاصية تحديد الموقع الجغرافي GPS', 'error');
+        return;
+      }
+      showToast('جاري تحديد موقعك الجغرافي عبر GPS...', 'info');
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude.toFixed(6);
+          const lng = pos.coords.longitude.toFixed(6);
+          document.getElementById('settingCafeLatitude').value = lat;
+          document.getElementById('settingCafeLongitude').value = lng;
+          showToast(`تم جلب موقع المقهى بنجاح: ${lat}, ${lng}`, 'success');
+        },
+        (err) => {
+          showToast('تعذر جلب الموقع: ' + err.message, 'error');
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+
+    // Save Settings
+    async function handleSaveSettings(e) {
+      e.preventDefault();
+      const btn = document.getElementById('saveSettingsBtn');
+      const origText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> جاري حفظ الإعدادات وتحديث كروت Google Wallet...`;
+
+      try {
+        const payload = {
+          drinksMaxStamps: Number(document.getElementById('settingDrinksMaxStamps').value),
+          bakeryMaxStamps: Number(document.getElementById('settingBakeryMaxStamps').value),
+          cafeLatitude: Number(document.getElementById('settingCafeLatitude').value),
+          cafeLongitude: Number(document.getElementById('settingCafeLongitude').value),
+          cafeAddress: document.getElementById('settingCafeAddress').value,
+          geofenceActive: document.getElementById('settingGeofenceActive').checked
+        };
+
+        const res = await fetch('/api/settings', {
+          method: 'POST',
+          headers: getAdminAuthHeaders(),
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          currentSettings = data.settings;
+          showToast(data.message, 'success');
+          if (activeCustomer) renderActiveCustomer(activeCustomer);
+          loadAllCustomers();
+        } else {
+          showToast(data.error || 'فشل حفظ الإعدادات', 'error');
+        }
+      } catch (err) {
+        showToast('خطأ: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = origText;
+      }
+    }
+
+    // Clear Demo Data
+    async function clearDemoDataFromDb() {
+      if (!confirm('⚠️ تحذير: هل أنت متأكد من مسح جميع بيانات الزبائن والحركات التجريبية بالكامل من Supabase؟\nلا يمكن التراجع عن هذه الخطوة.')) {
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/admin/clear-demo-data', {
+          method: 'POST',
+          headers: getAdminAuthHeaders()
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(data.message, 'success');
+          activeCustomer = null;
+          await loadAllCustomers();
+          await loadRecentTransactions();
+          switchTab('customers-list');
+        } else {
+          showToast(data.error || 'حدث خطأ أثناء المسح', 'error');
+        }
+      } catch (err) {
+        showToast('خطأ: ' + err.message, 'error');
+      }
+    }
+
+    // Diagnostics Checker
+    async function checkApiDiagnostics() {
+      const box = document.getElementById('apiDiagnosticsResult');
+      box.textContent = 'جاري استدعاء Google Wallet API وفحص صلاحيات حساب الخدمة و Supabase...';
+      try {
+        const res = await fetch('/api/google-wallet/status');
+        const data = await res.json();
+        box.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        box.textContent = 'خطأ في الاتصال بالخادم: ' + err.message;
+      }
+    }
+
+    // Toast Notification Utility
+    function showToast(msg, type = 'info') {
+      const c = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      const colors = {
+        success: 'bg-emerald-600 text-white border-emerald-400',
+        error: 'bg-red-600 text-white border-red-400',
+        warning: 'bg-amber-600 text-white border-amber-400',
+        info: 'bg-coffee-700 text-white border-gold-500'
+      };
+      const icons = {
+        success: 'fa-circle-check',
+        error: 'fa-circle-xmark',
+        warning: 'fa-triangle-exclamation',
+        info: 'fa-circle-info'
+      };
+
+      toast.className = `p-4 rounded-2xl shadow-2xl border text-sm font-bold flex items-center gap-3 transition-all duration-300 transform translate-y-5 opacity-0 ${colors[type] || colors.info}`;
+      toast.innerHTML = `<i class="fa-solid ${icons[type] || icons.info} text-lg"></i><span>${msg}</span>`;
+      c.appendChild(toast);
+
+      setTimeout(() => toast.classList.remove('translate-y-5', 'opacity-0'), 10);
+      setTimeout(() => {
+        toast.classList.add('opacity-0', '-translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+  </script>
+</body>
+</html>

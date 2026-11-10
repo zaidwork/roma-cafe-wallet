@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Roma Cafe | بطاقات الولاء الرقمية في Google Wallet</title>
+  
+  <!-- Google Fonts: Cairo -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            espresso: {
+              950: '#0d0705',
+              900: '#180e0a',
+              800: '#261610',
+              700: '#382017',
+              600: '#523023',
+              500: '#754533',
+              400: '#9e6149',
+              300: '#c58b73',
+              200: '#e5bead',
+              100: '#f7ebe5'
+            },
+            bakery: {
+              950: '#150c05',
+              900: '#231409',
+              800: '#3a2211',
+              700: '#5c3519',
+              600: '#854e24',
+              500: '#b06a31',
+              400: '#d78b47',
+              300: '#f0b074',
+              200: '#fbd7ab',
+              100: '#fef1df'
+            },
+            gold: {
+              300: '#fcd34d',
+              400: '#fbbf24',
+              500: '#f59e0b',
+              600: '#d97706',
+              700: '#b45309'
+            }
+          },
+          fontFamily: {
+            cairo: ['Cairo', 'sans-serif']
+          },
+          boxShadow: {
+            'glow-gold': '0 0 25px -5px rgba(245, 158, 11, 0.45)',
+            'glow-amber': '0 0 25px -5px rgba(217, 119, 6, 0.45)',
+            'card-3d': '0 20px 35px -10px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(251, 191, 36, 0.2)'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Cairo', sans-serif;
+      background: radial-gradient(circle at 50% 0%, #261610 0%, #0d0705 100%);
+      min-height: 100vh;
+      color: #f7ebe5;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Pass Card Glass & Gradient */
+    .card-drinks-bg {
+      background: linear-gradient(145deg, #261610 0%, #180e0a 50%, #0d0705 100%);
+      border: 1px solid rgba(251, 191, 36, 0.35);
+    }
+
+    .card-bakery-bg {
+      background: linear-gradient(145deg, #3a2211 0%, #231409 50%, #0d0705 100%);
+      border: 1px solid rgba(215, 139, 71, 0.4);
+    }
+
+    .card-bundle-bg {
+      background: linear-gradient(135deg, #451a03 0%, #291206 50%, #140702 100%);
+      border: 2px solid #f59e0b;
+    }
+
+    /* Pulse animation for the master save button */
+    @keyframes pulse-subtle {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(245, 158, 11, 0.4); }
+      50% { transform: scale(1.02); box-shadow: 0 0 35px rgba(245, 158, 11, 0.7); }
+    }
+    .btn-pulse {
+      animation: pulse-subtle 2.5s infinite ease-in-out;
+    }
+
+    /* Stamp Stamp Slot */
+    .stamp-slot {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .stamp-slot:active {
+      transform: scale(0.95);
+    }
+  </style>
+</head>
+<body class="flex flex-col justify-between min-h-screen p-3 sm:p-5">
+
+  <!-- Floating Toast Notification -->
+  <div id="walletToast" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 hidden max-w-sm w-[90%] bg-espresso-900/95 border-2 border-gold-400 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 backdrop-blur-md">
+    <div class="w-8 h-8 rounded-full bg-gold-500 text-espresso-950 flex items-center justify-center font-bold">
+      <i class="fa-solid fa-spinner fa-spin"></i>
+    </div>
+    <div class="text-xs font-bold leading-tight" id="toastMessage">
+      جاري فتح Google Wallet...
+    </div>
+  </div>
+
+  <!-- Header Branding -->
+  <header class="text-center pt-2 sm:pt-4">
+    <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-gold-500 to-amber-700 shadow-glow-gold mb-2 border border-gold-300/40">
+      <i class="fa-solid fa-mug-hot text-3xl text-espresso-950"></i>
+    </div>
+    <h1 class="text-2xl sm:text-3xl font-black text-white tracking-wide">Roma Cafe</h1>
+    <p class="text-xs sm:text-sm text-gold-400 font-bold mt-0.5">بطاقات الولاء الرسمية المعتمدة في Google Wallet ☕🥐</p>
+  </header>
+
+  <!-- Main Container -->
+  <main class="w-full max-w-lg mx-auto my-3 sm:my-5">
+
+    <!-- STEP 1: Registration / Login Form -->
+    <div id="step-register" class="bg-espresso-900/90 backdrop-blur-md rounded-3xl p-5 sm:p-7 border border-espresso-700/80 shadow-2xl">
+      
+      <div class="text-center mb-5">
+        <span class="inline-block px-3 py-1 bg-gold-500/20 text-gold-300 border border-gold-400/30 text-[11px] font-bold rounded-full mb-2">
+          ✨ بطاقة القهوة ☕ + بطاقة المخبوزات 🥐
+        </span>
+        <h2 class="text-lg sm:text-xl font-bold text-white">سجل اسمك ورقم هاتفك للحصول على البطاقات</h2>
+        <p class="text-xs text-espresso-300 mt-1 leading-relaxed">
+          إذا كنت مسجلاً مسبقاً، أدخل نفس بياناتك لاسترجاع بطاقاتك ورصيدك فوراً دون فقدان أي ختم!
+        </p>
+      </div>
+
+      <!-- Alert Box for Validation Errors -->
+      <div id="enrollErrorAlert" class="hidden p-3.5 bg-red-950/90 border-2 border-red-500 rounded-2xl text-red-200 text-xs font-bold flex items-start gap-2.5 mb-4 leading-relaxed">
+        <i class="fa-solid fa-circle-exclamation text-red-400 text-base mt-0.5 shrink-0"></i>
+        <span id="enrollErrorAlertText"></span>
+      </div>
+
+      <form id="customerEnrollForm" onsubmit="handleCustomerSubmit(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-espresso-200 mb-1.5">الاسم الكامل:</label>
+          <div class="relative">
+            <i class="fa-solid fa-user absolute right-3.5 top-3.5 text-espresso-400 text-sm"></i>
+            <input type="text" id="custFullName" required placeholder="مثال: زيد دراغمة" 
+              class="w-full pr-10 pl-3 py-3 rounded-2xl bg-espresso-950/80 border border-espresso-600 focus:border-gold-500 focus:outline-none text-white text-sm transition placeholder-espresso-500 font-medium">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-espresso-200 mb-1.5">رقم الهاتف (Mobile):</label>
+          <div class="relative">
+            <i class="fa-solid fa-phone absolute right-3.5 top-3.5 text-espresso-400 text-sm"></i>
+            <input type="tel" id="custPhone" required placeholder="059xxxxxxx أو 056xxxxxxx" 
+              class="w-full pr-10 pl-3 py-3 rounded-2xl bg-espresso-950/80 border border-espresso-600 focus:border-gold-500 focus:outline-none text-white text-sm font-mono transition placeholder-espresso-500 font-medium">
+          </div>
+        </div>
+
+        <button type="submit" id="submitEnrollBtn" class="w-full py-4 rounded-2xl bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-400 hover:to-gold-500 active:scale-98 text-espresso-950 font-black text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg shadow-gold-500/25 transition mt-3">
+          <i class="fa-brands fa-google text-lg"></i>
+          <span>فتح وتجهيز بطاقاتي في Google Wallet</span>
+        </button>
+      </form>
+
+      <!-- Highlights -->
+      <div class="mt-5 pt-4 border-t border-espresso-800 grid grid-cols-3 gap-2 text-center text-[10px] text-espresso-300">
+        <div class="p-1">
+          <i class="fa-solid fa-bolt text-gold-400 text-sm mb-1 block"></i>
+          <span>حفظ فوري بالهاتف</span>
+        </div>
+        <div class="p-1">
+          <i class="fa-solid fa-location-dot text-gold-400 text-sm mb-1 block"></i>
+          <span>تنبيه عند الكافيه</span>
+        </div>
+        <div class="p-1">
+          <i class="fa-solid fa-gift text-gold-400 text-sm mb-1 block"></i>
+          <span>مكافآت مجانية دورية</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- STEP 2: Cards Presentation & Instant Install -->
+    <div id="step-ready" class="hidden space-y-4">
+
+      <!-- Customer Status Card -->
+      <div class="bg-espresso-900/90 rounded-2xl p-4 border border-gold-500/30 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-gold-500 to-amber-600 text-espresso-950 flex items-center justify-center text-xl font-black">
+            <i class="fa-solid fa-award"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 id="readyCustomerName" class="text-base font-black text-white"></h2>
+              <span class="text-[9px] bg-gold-500/20 text-gold-300 border border-gold-500/30 px-2 py-0.5 rounded-full font-bold">عضو VIP ✨</span>
+            </div>
+            <p id="readyStatusMessage" class="text-xs text-espresso-300 mt-0.5">بطاقاتك الرقمية جاهزة ومحدثة</p>
+          </div>
+        </div>
+        <button onclick="resetEnrollView()" class="text-xs text-espresso-400 hover:text-white transition px-2 py-1 rounded-lg bg-espresso-950/60 border border-espresso-700">
+          تغيير الحساب
+        </button>
+      </div>
+
+      <!-- MASTER VIP HERO: Install BOTH Cards in 1 Click! -->
+      <div class="card-bundle-bg rounded-3xl p-5 shadow-card-3d relative overflow-hidden text-center space-y-4">
+        
+        <!-- Glow Badge -->
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-gold-500 text-espresso-950 rounded-full font-black text-xs shadow-md">
+          <i class="fa-solid fa-star text-[10px]"></i>
+          <span>الخيار الموصى به: حفظ البطاقتين معاً</span>
+        </div>
+
+        <div>
+          <h3 class="text-xl font-black text-white">بطاقة المشروبات ☕ + بطاقة المخبوزات 🥐</h3>
+          <p class="text-xs text-espresso-200 mt-1 max-w-sm mx-auto leading-relaxed">
+            اضغط على الزر الذهبي أدناه لإضافة البطاقتين معاً بنقرة واحدة مباشرة إلى تطبيق <strong>Google Wallet</strong> دون انتظار!
+          </p>
+        </div>
+
+        <!-- Big Prominent Clickable Action Button -->
+        <div>
+          <button id="masterInstallBothBtn" onclick="installPass('both')" type="button"
+            class="btn-pulse w-full py-4 px-4 rounded-2xl bg-gradient-to-r from-amber-400 via-gold-400 to-amber-500 hover:from-amber-300 hover:to-gold-300 active:scale-95 text-espresso-950 font-black text-base flex items-center justify-center gap-3 shadow-xl shadow-gold-500/30 border-2 border-gold-200 transition cursor-pointer">
+            <i class="fa-brands fa-google text-2xl"></i>
+            <span class="text-sm sm:text-base">تثبيت البطاقتين معاً في Google Wallet</span>
+          </button>
+        </div>
+
+        <p class="text-[11px] text-espresso-300 flex items-center justify-center gap-2">
+          <i class="fa-solid fa-shield-halved text-gold-400"></i>
+          <span>معتمدة رسمياً ومربوطة بحساب Google في هاتفك</span>
+        </p>
+
+      </div>
+
+      <!-- Separator -->
+      <div class="flex items-center gap-3 text-xs text-espresso-400 my-2 px-2">
+        <div class="flex-1 h-px bg-espresso-800"></div>
+        <span>أو استعراض وتثبيت كل بطاقة على حدة</span>
+        <div class="flex-1 h-px bg-espresso-800"></div>
+      </div>
+
+      <!-- CARD 1: ☕ Roma Espresso Pass (Realistic Digital Pass) -->
+      <div class="card-drinks-bg rounded-3xl p-5 shadow-card-3d relative overflow-hidden">
+        
+        <!-- Top Pass Bar -->
+        <div class="flex justify-between items-center border-b border-gold-500/20 pb-3 mb-4">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-gold-500/20 text-gold-400 border border-gold-500/30 flex items-center justify-center">
+              <i class="fa-solid fa-mug-hot text-base"></i>
+            </div>
+            <div>
+              <h4 class="text-sm font-black text-white">بطاقة القهوة والمشروبات</h4>
+              <p class="text-[10px] text-gold-400/90 font-medium">Roma Cafe • برنامج الولاء</p>
+            </div>
+          </div>
+          <span class="text-[10px] bg-espresso-950/80 text-espresso-300 border border-espresso-700 px-2.5 py-1 rounded-full font-mono">
+            Google Wallet
+          </span>
+        </div>
+
+        <!-- Stamp Progress Header -->
+        <div class="flex justify-between items-baseline mb-2">
+          <span class="text-xs text-espresso-300 font-bold">رصيد الأختام الحالي:</span>
+          <span id="drinksCountBadge" class="text-base font-black text-gold-400 font-mono">0 / 6 أختام</span>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="w-full bg-espresso-950/90 rounded-full h-2.5 p-0.5 border border-espresso-700 mb-4 overflow-hidden">
+          <div id="drinksProgressBar" class="bg-gradient-to-r from-amber-500 to-gold-400 h-full rounded-full transition-all duration-700" style="width: 0%"></div>
+        </div>
+
+        <!-- Visual Cups Grid (6 Slots) -->
+        <div id="drinksStampGrid" class="grid grid-cols-6 gap-1.5 sm:gap-2 mb-4"></div>
+
+        <!-- Micro status text -->
+        <p id="drinksGaugeText" class="text-[11px] text-espresso-300 text-center mb-3 font-mono"></p>
+
+        <!-- Save Button for Drinks -->
+        <button onclick="installPass('drinks')" type="button"
+          class="w-full py-3 px-4 rounded-xl bg-espresso-950/80 hover:bg-espresso-900 border border-gold-500/40 text-gold-300 hover:text-white font-bold text-xs flex items-center justify-center gap-2 transition active:scale-98">
+          <i class="fa-brands fa-google text-sm"></i>
+          <span>حفظ كارت المشروبات وحده ☕</span>
+        </button>
+
+      </div>
+
+      <!-- CARD 2: 🥐 Roma Bakery Pass (Realistic Digital Pass) -->
+      <div class="card-bakery-bg rounded-3xl p-5 shadow-card-3d relative overflow-hidden">
+        
+        <!-- Top Pass Bar -->
+        <div class="flex justify-between items-center border-b border-bakery-500/30 pb-3 mb-4">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-bakery-500/20 text-bakery-300 border border-bakery-500/40 flex items-center justify-center">
+              <i class="fa-solid fa-croissant text-base"></i>
+            </div>
+            <div>
+              <h4 class="text-sm font-black text-white">بطاقة المخبوزات والحلويات</h4>
+              <p class="text-[10px] text-bakery-300 font-medium">Roma Cafe • تشكيلة الفرش</p>
+            </div>
+          </div>
+          <span class="text-[10px] bg-espresso-950/80 text-bakery-300 border border-bakery-700 px-2.5 py-1 rounded-full font-mono">
+            Google Wallet
+          </span>
+        </div>
+
+        <!-- Stamp Progress Header -->
+        <div class="flex justify-between items-baseline mb-2">
+          <span class="text-xs text-espresso-300 font-bold">رصيد الأختام الحالي:</span>
+          <span id="bakeryCountBadge" class="text-base font-black text-amber-400 font-mono">0 / 5 أختام</span>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="w-full bg-espresso-950/90 rounded-full h-2.5 p-0.5 border border-espresso-700 mb-4 overflow-hidden">
+          <div id="bakeryProgressBar" class="bg-gradient-to-r from-amber-600 to-amber-400 h-full rounded-full transition-all duration-700" style="width: 0%"></div>
+        </div>
+
+        <!-- Visual Bakery Grid (5 Slots) -->
+        <div id="bakeryStampGrid" class="grid grid-cols-5 gap-2 mb-4"></div>
+
+        <!-- Micro status text -->
+        <p id="bakeryGaugeText" class="text-[11px] text-espresso-300 text-center mb-3 font-mono"></p>
+
+        <!-- Save Button for Bakery -->
+        <button onclick="installPass('bakery')" type="button"
+          class="w-full py-3 px-4 rounded-xl bg-espresso-950/80 hover:bg-espresso-900 border border-bakery-500/50 text-amber-300 hover:text-white font-bold text-xs flex items-center justify-center gap-2 transition active:scale-98">
+          <i class="fa-brands fa-google text-sm"></i>
+          <span>حفظ كارت المخبوزات وحده 🥐</span>
+        </button>
+
+      </div>
+
+      <!-- In-Store Cashier Scan QR Code (Instant local base64, zero lag) -->
+      <div class="bg-espresso-900/90 rounded-2xl p-4 border border-espresso-700/80 text-center space-y-2">
+        <div class="flex items-center justify-center gap-2 text-xs font-bold text-gold-400">
+          <i class="fa-solid fa-qrcode text-sm"></i>
+          <span>رمز مسح بطاقتك عند الكاشير بالفرع</span>
+        </div>
+        <div class="inline-block p-2.5 bg-white rounded-2xl shadow-lg border border-gold-500/30">
+          <img id="phoneCustVerifyQr" src="" alt="Customer Scan QR" class="w-36 h-36 mx-auto object-contain">
+        </div>
+        <p class="text-[11px] text-espresso-300 max-w-xs mx-auto">
+          أظهر هذا الرمز للكاشير عند دفع الحساب في مقهى Roma لإضافة الأختام تلقائياً!
+        </p>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="text-center py-3 text-xs text-espresso-400">
+    <p>© 2026 Roma Cafe — جميع الحقوق محفوظة</p>
+  </footer>
+
+  <script>
+    let currentCustomerData = null;
+
+    async function handleCustomerSubmit(e) {
+      e.preventDefault();
+      hideErrorAlert();
+
+      const submitBtn = document.getElementById('submitEnrollBtn');
+      const originalHtml = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-lg"></i> <span>جاري فحص الحساب وتجهيز البطاقات...</span>`;
+
+      const fullName = document.getElementById('custFullName').value.trim();
+      const phone = document.getElementById('custPhone').value.trim();
+
+      try {
+        const res = await fetch('/api/create-wallet-pass', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ full_name: fullName, phone_number: phone })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          currentCustomerData = data;
+          renderCardsView(data);
+        } else {
+          showErrorAlert(data.error || 'تعذر معالجة الطلب. يرجى التأكد من البيانات والمحاولة مجدداً.');
+        }
+      } catch (err) {
+        showErrorAlert('فشل الاتصال بالخادم: ' + err.message);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalHtml;
+      }
+    }
+
+    function showErrorAlert(msg) {
+      const el = document.getElementById('enrollErrorAlert');
+      const text = document.getElementById('enrollErrorAlertText');
+      text.textContent = msg;
+      el.classList.remove('hidden');
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function hideErrorAlert() {
+      const el = document.getElementById('enrollErrorAlert');
+      el.classList.add('hidden');
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('walletToast');
+      const text = document.getElementById('toastMessage');
+      text.textContent = msg;
+      toast.classList.remove('hidden');
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 4000);
+    }
+
+    // Direct install handler without blank popup stalling
+    function installPass(type = 'both') {
+      if (!currentCustomerData) {
+        alert('يرجى تسجيل البيانات أولاً');
+        return;
+      }
+
+      let targetUrl = '';
+      if (type === 'both') {
+        // Use short redirect url or direct save url
+        targetUrl = currentCustomerData.both?.short_save_url || currentCustomerData.both?.save_url || currentCustomerData.save_url;
+      } else if (type === 'drinks') {
+        targetUrl = currentCustomerData.drinks?.save_url;
+      } else if (type === 'bakery') {
+        targetUrl = currentCustomerData.bakery?.save_url;
+      }
+
+      if (!targetUrl) {
+        alert('الرابط غير متوفر حالياً');
+        return;
+      }
+
+      showToast('جاري فتح Google Wallet لتثبيت بطاقاتك 📲...');
+
+      // Crucial for Mobile Android/iOS:
+      // Direct navigation triggers the native Google Wallet bottom sheet without opening an infinite loading tab!
+      window.location.href = targetUrl;
+    }
+
+    function renderCardsView(data) {
+      const cust = data.customer;
+      document.getElementById('readyCustomerName').textContent = cust.full_name;
+
+      const statusMsg = document.getElementById('readyStatusMessage');
+      if (data.is_existing) {
+        statusMsg.textContent = "أهلاً بك مجدداً! تم استرجاع بطاقاتك ورصيدك الحالي بنجاح ☕🥐";
+      } else {
+        statusMsg.textContent = "تم تسجيلك بنجاح! بطاقاتك الرقمية جاهزة للحفظ في هاتفك ☕🥐";
+      }
+
+      // 1. Render Drinks Pass
+      const dStamps = data.drinks.stamps_count || 0;
+      const dMax = data.drinks.max_stamps || 6;
+      const dPercent = Math.min(100, Math.round((dStamps / dMax) * 100));
+
+      document.getElementById('drinksCountBadge').textContent = `${dStamps} / ${dMax} أختام ☕`;
+      document.getElementById('drinksProgressBar').style.width = `${dPercent}%`;
+      document.getElementById('drinksGaugeText').textContent = data.drinks.visual_gauge || '';
+
+      const dGrid = document.getElementById('drinksStampGrid');
+      dGrid.innerHTML = '';
+      for (let i = 1; i <= dMax; i++) {
+        const isStamped = i <= dStamps;
+        const isGift = (i === dMax);
+        const slot = document.createElement('div');
+        
+        if (isStamped) {
+          slot.className = 'stamp-slot aspect-square rounded-2xl bg-gradient-to-tr from-gold-500 to-amber-400 text-espresso-950 flex flex-col items-center justify-center font-black shadow-md border-2 border-gold-200';
+          slot.innerHTML = `<i class="fa-solid fa-check text-xs"></i><span class="text-[9px] mt-0.5">${isGift ? 'هدية!' : i}</span>`;
+        } else if (isGift) {
+          slot.className = 'stamp-slot aspect-square rounded-2xl bg-gold-500/10 border-2 border-dashed border-gold-400/60 text-gold-400 flex flex-col items-center justify-center font-bold';
+          slot.innerHTML = `<i class="fa-solid fa-gift text-sm animate-bounce"></i><span class="text-[8px] mt-0.5">مجاني</span>`;
+        } else {
+          slot.className = 'stamp-slot aspect-square rounded-2xl bg-espresso-950/60 border border-espresso-700/80 text-espresso-500 flex flex-col items-center justify-center font-bold';
+          slot.innerHTML = `<i class="fa-solid fa-mug-hot text-xs opacity-40"></i><span class="text-[9px] mt-0.5 text-espresso-400">${i}</span>`;
+        }
+        dGrid.appendChild(slot);
+      }
+
+      // 2. Render Bakery Pass
+      const bStamps = data.bakery.stamps_count || 0;
+      const bMax = data.bakery.max_stamps || 5;
+      const bPercent = Math.min(100, Math.round((bStamps / bMax) * 100));
+
+      document.getElementById('bakeryCountBadge').textContent = `${bStamps} / ${bMax} أختام 🥐`;
+      document.getElementById('bakeryProgressBar').style.width = `${bPercent}%`;
+      document.getElementById('bakeryGaugeText').textContent = data.bakery.visual_gauge || '';
+
+      const bGrid = document.getElementById('bakeryStampGrid');
+      bGrid.innerHTML = '';
+      for (let i = 1; i <= bMax; i++) {
+        const isStamped = i <= bStamps;
+        const isGift = (i === bMax);
+        const slot = document.createElement('div');
+        
+        if (isStamped) {
+          slot.className = 'stamp-slot aspect-square rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 text-espresso-950 flex flex-col items-center justify-center font-black shadow-md border-2 border-amber-200';
+          slot.innerHTML = `<i class="fa-solid fa-check text-xs"></i><span class="text-[9px] mt-0.5">${isGift ? 'هدية!' : i}</span>`;
+        } else if (isGift) {
+          slot.className = 'stamp-slot aspect-square rounded-2xl bg-amber-500/10 border-2 border-dashed border-amber-400/60 text-amber-400 flex flex-col items-center justify-center font-bold';
+          slot.innerHTML = `<i class="fa-solid fa-cake-candles text-sm animate-bounce"></i><span class="text-[8px] mt-0.5">مجاني</span>`;
+        } else {
+          slot.className = 'stamp-slot aspect-square rounded-2xl bg-espresso-950/60 border border-bakery-700/80 text-bakery-600 flex flex-col items-center justify-center font-bold';
+          slot.innerHTML = `<i class="fa-solid fa-croissant text-xs opacity-40"></i><span class="text-[9px] mt-0.5 text-bakery-400">${i}</span>`;
+        }
+        bGrid.appendChild(slot);
+      }
+
+      // 3. Render Cashier Verify QR (Using local crisp base64 from server, zero lag)
+      if (data.verify_qr) {
+        document.getElementById('phoneCustVerifyQr').src = data.verify_qr;
+      } else {
+        const verifyUrl = `${window.location.origin}/verify?cid=${cust.customer_id}`;
+        document.getElementById('phoneCustVerifyQr').src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><text x="10" y="50" font-size="12">Roma QR</text></svg>`;
+      }
+
+      // Switch views smoothly
+      document.getElementById('step-register').classList.add('hidden');
+      document.getElementById('step-ready').classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function resetEnrollView() {
+      document.getElementById('customerEnrollForm').reset();
+      hideErrorAlert();
+      document.getElementById('step-ready').classList.add('hidden');
+      document.getElementById('step-register').classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  </script>
+</body>
+</html>
