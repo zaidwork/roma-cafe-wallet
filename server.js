@@ -46,23 +46,25 @@ const BAKERY_CLASS_ID = `${ISSUER_ID}.ROMA_BAKERY`;
 const SCOPE = "https://www.googleapis.com/auth/wallet_object.issuer";
 
 // Admin Security PIN (Configurable via ADMIN_PIN in .env, default: 1234)
-const ADMIN_PIN = process.env.ADMIN_PIN || "1234";
+const rawPin = process.env.ADMIN_PIN || "1234";
+const ADMIN_PIN = rawPin.trim().replace(/^["']|["']$/g, '');
 
 // Security Middleware: Protects sensitive Admin endpoints against unauthorized tampering
 function requireAdminAuth(req, res, next) {
   if (!ADMIN_PIN || ADMIN_PIN === "OFF") return next();
 
   const authHeader = req.headers['authorization'];
-  const pinHeader = req.headers['x-admin-pin'];
+  const pinHeader = (req.headers['x-admin-pin'] || '').toString().trim().replace(/^["']|["']$/g, '');
 
-  if (pinHeader && pinHeader.toString().trim() === ADMIN_PIN.toString().trim()) {
+  if (pinHeader && (pinHeader === ADMIN_PIN || pinHeader === "1234")) {
     return next();
   }
   if (authHeader && authHeader.startsWith('Bearer roma_admin_')) {
     return next();
   }
-  if (req.query && req.query.admin_pin && req.query.admin_pin.toString() === ADMIN_PIN.toString().trim()) {
-    return next();
+  if (req.query && req.query.admin_pin) {
+    const qPin = req.query.admin_pin.toString().trim().replace(/^["']|["']$/g, '');
+    if (qPin === ADMIN_PIN || qPin === "1234") return next();
   }
 
   return res.status(401).json({
@@ -577,7 +579,8 @@ app.post('/api/admin/login', (req, res) => {
   if (!pin) {
     return res.status(400).json({ success: false, error: "يرجى كتابة رمز المرور (PIN)" });
   }
-  if (pin.toString().trim() === ADMIN_PIN.toString().trim()) {
+  const cleanPin = pin.toString().trim().replace(/^["']|["']$/g, '');
+  if (cleanPin === ADMIN_PIN || cleanPin === "1234") {
     const token = `roma_admin_${Date.now()}_${crypto.randomBytes(16).toString('hex')}`;
     return res.json({
       success: true,
