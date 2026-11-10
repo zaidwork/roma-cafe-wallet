@@ -117,12 +117,33 @@ function saveSettings(settings) {
   }
 }
 
-// Read Service Account credentials safely (file or ENV variable)
+// Read Service Account credentials safely (file, ENV variable, Base64, or Render Secret Files)
 function getServiceAccount() {
+  // 1. Check Base64 ENV (Most reliable on cloud platforms like Render)
+  if (process.env.GOOGLE_SERVICE_ACCOUNT_B64) {
+    try {
+      const decoded = Buffer.from(process.env.GOOGLE_SERVICE_ACCOUNT_B64.trim(), 'base64').toString('utf8');
+      const parsed = JSON.parse(decoded);
+      if (parsed.private_key) {
+        parsed.private_key = parsed.private_key.replace(/\\n/g, '\n');
+      }
+      return parsed;
+    } catch (e) {
+      console.error("Error parsing GOOGLE_SERVICE_ACCOUNT_B64 from env:", e);
+    }
+  }
+
+  // 2. Check Raw JSON ENV
   if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
     try {
-      const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON.trim();
-      const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      let raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON.trim();
+      if ((raw.startsWith('"') && raw.endsWith('"')) || (raw.startsWith("'") && raw.endsWith("'"))) {
+        raw = raw.slice(1, -1);
+      }
+      let parsed = JSON.parse(raw);
+      if (typeof parsed === 'string') {
+        parsed = JSON.parse(parsed);
+      }
       if (parsed.private_key) {
         parsed.private_key = parsed.private_key.replace(/\\n/g, '\n');
       }
@@ -132,8 +153,11 @@ function getServiceAccount() {
     }
   }
 
+  // 3. Check File paths (Including Render's /etc/secrets/ mount location)
   const saPaths = [
+    '/etc/secrets/service_account.json', // Render Secret Files mount path
     path.join(__dirname, 'service_account.json'),
+    path.join(process.cwd(), 'service_account.json'),
     path.join(__dirname, '../service_account.json'),
     path.join(__dirname, 'gen-lang-client-0170929101-ae1e1ddb6f9d.json'),
     path.join(__dirname, '../gen-lang-client-0170929101-ae1e1ddb6f9d.json')
@@ -142,12 +166,16 @@ function getServiceAccount() {
   for (const p of saPaths) {
     if (fs.existsSync(p)) {
       try {
-        return JSON.parse(fs.readFileSync(p, 'utf8'));
+        const parsed = JSON.parse(fs.readFileSync(p, 'utf8'));
+        if (parsed.private_key) {
+          parsed.private_key = parsed.private_key.replace(/\\n/g, '\n');
+        }
+        return parsed;
       } catch (e) {}
     }
   }
 
-  throw new Error("ملف service_account.json غير موجود. يرجى وضعه في مجلد المشروع أو تعيين متغير البيئة GOOGLE_SERVICE_ACCOUNT_JSON.");
+  throw new Error("ملف service_account.json غير موجود. يرجى إضافته في Render عبر Secret Files أو كمتغير بيئة GOOGLE_SERVICE_ACCOUNT_B64.");
 }
 
 function createJwt(header, payload, privateKey) {
