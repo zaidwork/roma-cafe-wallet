@@ -175,7 +175,15 @@ function getServiceAccount() {
     }
   }
 
-  throw new Error("ملف service_account.json غير موجود. يرجى إضافته في Render عبر Secret Files أو كمتغير بيئة GOOGLE_SERVICE_ACCOUNT_B64.");
+  // 4. Built-in Safe Fallback (Loads automatically so Render needs ZERO manual files!)
+  try {
+    const fallbackFn = require('./service_account_fallback.js');
+    return fallbackFn();
+  } catch (e) {
+    console.error("Error loading service_account_fallback:", e);
+  }
+
+  throw new Error("ملف service_account.json غير موجود.");
 }
 
 function createJwt(header, payload, privateKey) {
